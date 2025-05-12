@@ -1,2 +1,6 @@
 data/*
 export/*
+!data/BO/
+!export/BO/
+!data/NP/
+!export/NP/
