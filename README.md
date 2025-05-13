@@ -8,7 +8,7 @@ This repository contains 2 elements :
 
 ## Configure python script
 
-* Install the needed librairies (pandas, geopandas, networkx, requests, ...)
+* Install the python dependancies (pandas, geopandas, networkx, requests, osm2geojson, shapely ...)
 * Set the desired two-letters COUNTRY_CODE in each script
 * Set the desired BUFFER_DISTANCE (in meters) in script 2. This buffer is drawn auround substation to catch all power lines ending around. BUFFER_DISTANCE should be ideally 0, but in practise, we may need some tolerance.
 * Run the scripts in the order.
