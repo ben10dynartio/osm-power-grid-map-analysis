@@ -1,3 +1,4 @@
+.gitignore
 data/*
 export/*
 !data/BO/
