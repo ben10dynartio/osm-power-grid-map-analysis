@@ -28,14 +28,21 @@ See below result examples for Nepal.
 
 The QGIS project may help to produce two map template (see example for Nepal above).
 
-* For the high-voltage network map, you need to enable only the following layers for :
+* For the high-voltage network map, you need to enable only the following layers :
     * pre_graph_power_nodes
     * osm_brut_power_tower_transition
     * osm_brut_power_line
     * both osm_brut_country_shape
+    * OpenStreetMap
 * For the grid connectivity map, you need to enable only the following layers :
     * post_graph_power_nodes
     * post_graph_power_lines
     * both osm_brut_country_shape 
-  
-  
+
+Once the right layers are enable:
+
+* Go to menu Projects / Layout / Standard.
+* Choose in the Elements list the map legend associated to one of the two templates. Disable the other one.
+* Move and zoom/unzoom the map to the desired country with the Move Item Content button <img src="https://docs.qgis.org/3.40/fr/_images/mActionMoveItemContent.png" width="20px">
+* Export your map in the desired format the menu Layout / Export as image, PDF ... . Be careful to not export as vectorized format if OpenStreetMap layer is enable.
+
