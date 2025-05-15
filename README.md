@@ -23,8 +23,8 @@ See below result examples for Nepal.
 * If it is not yet done, download and install QGIS : https://qgis.org/download/ (if you are not familiar with QGIS, choose the Long Term Release, it is supposed to be more stable)
 * Open the QGIS project file of this repository
 * Go to Project / Properties / Variable and set the `country_name` variable.
-* Import all produced files by the python scripts (by default in data folder) into QGIS except `pre_graph_power_lines.gpkg`.
-* Copy/paste style from the existing layers, e.g. from Bolivia (BO), to the new layers of the same name - (right-click on a layer / Styles / Copy Style / All categories ; thus paste on imported layer)
+* Import all produced files by the python scripts (by default in data folder) into QGIS except pre_graph_power_lines.gpkg which is not needed.
+* Copy/paste style from the existing layers, e.g. from Bolivia (BO), to the new layers with the same name - (right-click on a layer / Styles / Copy Style / All categories ; thus paste on imported layer)
 * In the layer selection, disable all layers that are not concerning the country you work on. Disable, do not remove them ! Especially `Graph` & `Map` layer groups must stay as they are used for building the map legend !
 
 The QGIS project may help to produce two map templates (see example for Nepal above).
