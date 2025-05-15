@@ -1,12 +1,13 @@
 # osm-power-grid-map-analysis
-To build maps and graph analysis on OpenStreetMap (OSM) power grid data (power lines and substations).
+This repository aim to build maps and graph analysis on OpenStreetMap (OSM) power grid data (power lines and substations).
+It has been build in the context of #ohmygrid project, led by OpenEnergyTransition.
 
 This repository contains 2 elements :
 
-* Three python scripts that 1) downloads data from OSM via Overpass for a given country ; 2) cleans and prepares it for building a graph ; 3) Builds and analyses a graph
+* Three python scripts that 1) downloads data from OSM via Overpass for a given country ; 2) cleans and prepares it for building a graph ; 3) Builds and analyses a graph.
 * A QGIS project to render this data with 1) A map showing high-voltage network on OSM and recent contributions especially through the project #ohmygrid ; 2) A map showing basic grid consistency.
 
-See below result examples for Nepal.
+See result examples for Nepal below.
 
 <img alt="Nepal high-voltage network" src="export/NP/high-voltage-network.png" width="45%"><img alt="Nepal progress map" src="export/NP/grid-connectivity.png" width="45%">
 
