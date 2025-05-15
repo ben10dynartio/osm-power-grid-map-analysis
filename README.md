@@ -1,6 +1,6 @@
 # osm-power-grid-map-analysis
-This repository aim to build maps and graph analysis on OpenStreetMap (OSM) power grid data (power lines and substations).
-It has been build in the context of #ohmygrid project, led by OpenEnergyTransition.
+This repository is used to build maps and graph analysis on OpenStreetMap (OSM) power grid data (power lines and substations).
+It has been created in the context of <a href="https://ohmygrid.org" target="_blank">#ohmygrid</a> project, led by OpenEnergyTransition.
 
 This repository contains 2 elements :
 
