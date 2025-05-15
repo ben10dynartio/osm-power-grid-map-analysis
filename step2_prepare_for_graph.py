@@ -14,7 +14,7 @@ BUFFER_DISTANCE = 250
 gdf_tower = gpd.read_file(DATA_PATH + COUNTRY_CODE + "/osm_brut_power_tower_transition.gpkg").to_crs(epsg=3857)
 gdf_tower = gdf_tower[gdf_tower["line_management"]=="transition"]
 set_transition_nodes = set(gdf_tower["id"].unique().tolist())
-print("-- Number of line_management=transition power nodes =", len(set_transition_nodes))
+print("-- Info : Number of 'line_management=transition' power nodes (usually 0) =", len(set_transition_nodes))
 
 ### Prepare power line dataset
 gdf_line = gpd.read_file(DATA_PATH + COUNTRY_CODE + "/osm_brut_power_line.gpkg").to_crs(epsg=3857)
@@ -34,8 +34,6 @@ for i in range(2):
     dic_line_geopoint = {**dic_line_geopoint,
                          **{r[f"node{i}"] : r[f"p{i}"] for r in gdf_line.to_dict(orient="records")}}
 
-print(dic_line_geopoint)
-print(gdf_line.iloc[45])
 
 ### Prepare substation dataset
 gdf_sub = gpd.read_file(DATA_PATH + COUNTRY_CODE + "/osm_brut_power_substation.gpkg").to_crs(epsg=3857)
@@ -46,8 +44,6 @@ gdf_sub["geometry"] = gdf_sub["geometry"].buffer(distance=BUFFER_DISTANCE)
 # Ex: way/1234567 --> POINT(12.34 52.25)
 dic_substation_geopoint = {r["osmid"] : r["centroid"] for r in gdf_sub.to_dict(orient="records")}
 
-print(gdf_sub.iloc[45])
-
 
 ## Spatial join ends of lines with substations
 gdf_country_shape = gpd.read_file(DATA_PATH + COUNTRY_CODE + "/osm_brut_country_shape.gpkg").to_crs(epsg=3857)
@@ -57,7 +53,6 @@ for i in range(2):
     dftemp = gdf_line.copy()
     dftemp["geometry"] = dftemp[f"p{i}"]
     dftemp = dftemp.sjoin(gdf_sub, how='left').fillna("")
-    print(dftemp.columns)
     dic_res = {k["osmid_left"] : k["osmid_right"] for k in dftemp.to_dict(orient='records') }
     gdf_line[f"substation{i}"] = gdf_line["osmid"].apply(lambda x: dic_res[x])
 
@@ -65,8 +60,6 @@ for i in range(2):
     dftempbis = dftemp.clip(gdf_country_shape).copy()
     set_inside_country = set(dftempbis[f"node{i}"].unique().tolist())
     dftemp = dftemp[~(dftemp[f"node{i}"]).isin(set_inside_country)]
-    print(dftemp)
-    print(gdf_country_shape)
     dic_international_nodes = {**dic_international_nodes,
                               **{"node/" + str(r[f"node{i}"]) : r["geometry"]
                                  for r in dftemp.to_dict(orient='records')}}
@@ -109,7 +102,6 @@ for key in ["nodes", 'circuits', 'cables', 'voltage']:
     if key in df_graph_nodes.columns:
         del df_graph_nodes[key]
 
-print(df_graph_nodes.columns)
 gdf_graph_nodes = gpd.GeoDataFrame(df_graph_nodes, geometry="geometry")
 gdf_graph_nodes.to_file(DATA_PATH + COUNTRY_CODE + "/pre_graph_power_nodes.gpkg")
 
