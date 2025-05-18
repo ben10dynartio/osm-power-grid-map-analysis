@@ -1,7 +1,0 @@
-numpy
-pandas
-geopandas
-networkx
-requests
-osm2geojson
-shapely
