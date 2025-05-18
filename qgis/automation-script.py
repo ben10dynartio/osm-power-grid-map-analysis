@@ -1,9 +1,15 @@
-COUNTRY_LIST = {
-"NP":"Nepal",
-"TZ":"Tanzania",
-}
+import math
 
+COUNTRY_LIST = {
+    "MG":"Madagascar",
+    "LB":"Lebanon",
+    "EC":"Ecuador",
+    "SZ":"Eswatini",
+    "NP":"Nepal",
+}
 STYLE_REF_COUNTRY_CODE = "BO" # do not change
+DATA_FOLDER = "../data/"
+EXPORT_FOLDER = "../export/"
 
 DATA_LAYERS = ['osm_brut_country_shape', 'post_graph_power_lines', 
 'osm_brut_power_line', 'osm_brut_power_tower_transition', 
@@ -34,7 +40,7 @@ def move_layer(layer, group_name):
     myLayer = qgs_treeroot.findLayer(layer.id())
     myClone = myLayer.clone()
     parent = myLayer.parent()
-    myGroup = root.findGroup(group_name)
+    myGroup = qgs_treeroot.findGroup(group_name)
     # Insert in first position
     myGroup.insertChildNode(0, myClone)
     parent.removeChildNode(myLayer)
@@ -52,10 +58,10 @@ def create_country_group(country_code, country_name):
     if qgs_treeroot.findGroup(GROUP_NAME) is None:
         print("-- Group creation and data import")
         add_layer_group(GROUP_NAME)
-        QgsExpressionContextUtils.setProjectVariable(ProjectInstance, 'country_name', COUNTRY_NAME)
+        
 
         for layer_name in DATA_LAYERS:
-            path = f"data/{COUNTRY_CODE}/{layer_name}.gpkg"
+            path = f"{DATA_FOLDER}{COUNTRY_CODE}/{layer_name}.gpkg"
             layer = QgsVectorLayer(path, layer_name, "ogr")
             ProjectInstance.addMapLayer(layer)
 
@@ -74,6 +80,7 @@ def create_country_group(country_code, country_name):
         print("-- Group already exist, no import")
         
 def set_map_bounding_box(country_code):
+    
     country_layer = get_layer('osm_brut_country_shape', country_code)
     country_layer.selectAll()
     feature = country_layer.selectedFeatures()[0]
@@ -96,6 +103,36 @@ def set_map_bounding_box(country_code):
     QgsExpressionContextUtils.setProjectVariable(ProjectInstance, 'xMinimum', xmin)
     QgsExpressionContextUtils.setProjectVariable(ProjectInstance, 'yMaximum', ymax)
     QgsExpressionContextUtils.setProjectVariable(ProjectInstance, 'yMinimum', ymin)
+    
+    # Compute scalebar Dimensions
+    scalebar_size = max(deltay, deltax) * 65 / 180000 #nb of km available for scale bar
+    scalebar_base = 10**math.trunc(math.log10(scalebar_size))
+    scalebar_ratio = scalebar_size / scalebar_base
+    if (1 <= scalebar_ratio) and (scalebar_ratio < 1.5):
+        scalebar_unit_length = 25
+        scalebar_nb_length = 4
+    elif (1.5 <= scalebar_ratio) and (scalebar_ratio < 2):
+        scalebar_unit_length = 50
+        scalebar_nb_length = 3
+    elif (2 <= scalebar_ratio) and (scalebar_ratio < 3):
+        scalebar_unit_length = 50
+        scalebar_nb_length = 4
+    elif (3 <= scalebar_ratio) and (scalebar_ratio < 4):
+        scalebar_unit_length = 100
+        scalebar_nb_length = 3
+    elif (4 <= scalebar_ratio) and (scalebar_ratio < 6):
+        scalebar_unit_length = 100
+        scalebar_nb_length = 4
+    elif (6 <= scalebar_ratio) and (scalebar_ratio < 8):
+        scalebar_unit_length = 200
+        scalebar_nb_length = 3
+    elif (8 <= scalebar_ratio) and (scalebar_ratio < 10):
+        scalebar_unit_length = 200
+        scalebar_nb_length = 4
+        
+    #print(f"{scalebar_size=}, {scalebar_base=}, {scalebar_ratio=}, {scalebar_nb_length=}")
+    QgsExpressionContextUtils.setProjectVariable(ProjectInstance, 'scalebar_unit_length', scalebar_unit_length*scalebar_base/100)
+    QgsExpressionContextUtils.setProjectVariable(ProjectInstance, 'scalebar_nb_length', str(scalebar_nb_length))
 
 
 def show_layer(layer, is_shown):
@@ -126,7 +163,7 @@ def show_network_layers():
 
 
 def visibility_and_export(country_code, map_style):
-    sourcelayout = ggs_layoutmanager.layoutByName('Automation')
+    sourcelayout = ggs_layoutmanager.layoutByName('Automatized')
     graph_legend = sourcelayout.itemById('Legend:Grid connectivity')
     map_legend = sourcelayout.itemById('Legend:High-Voltage Network')
     show_layer("all", False)
@@ -148,11 +185,14 @@ def visibility_and_export(country_code, map_style):
     exporter = QgsLayoutExporter(sourcelayout)
     export_settings = QgsLayoutExporter.ImageExportSettings()
     export_settings.dpi = 200
-    exporter.exportToImage(f"export/{country_code}/{filename}", 
+    exporter.exportToImage(f"{EXPORT_FOLDER}{country_code}/{filename}", 
     export_settings)
 
 for COUNTRY_CODE, COUNTRY_NAME in COUNTRY_LIST.items():
+    print(f"> Starting execution for {COUNTRY_NAME} ({COUNTRY_CODE})")
+    QgsExpressionContextUtils.setProjectVariable(ProjectInstance, 'country_name', COUNTRY_NAME)
     create_country_group(COUNTRY_CODE, COUNTRY_NAME)
     set_map_bounding_box(COUNTRY_CODE)
     for my_map_style in ["graph", "map"]:
         visibility_and_export(COUNTRY_CODE, my_map_style)
+    print(f"> End {COUNTRY_CODE}")

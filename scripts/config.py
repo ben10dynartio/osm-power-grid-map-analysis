@@ -1,0 +1,3 @@
+COUNTRY_CODE = "MG"
+DATA_PATH = "../data/"
+BUFFER_DISTANCE = 250

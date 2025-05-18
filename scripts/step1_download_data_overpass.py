@@ -4,8 +4,10 @@ import requests
 import osm2geojson
 
 ## SETTINGS
-COUNTRY_CODE = "NG"
-DATA_PATH = "data/"
+import config
+COUNTRY_CODE = config.COUNTRY_CODE
+DATA_PATH = config.DATA_PATH
+
 
 def overpass_query(query:str):
     """Send an overpass query to the API """
@@ -110,5 +112,4 @@ def download_data(countrycode):
     gdf.to_file(DATA_PATH + countrycode + "/osm_brut_power_tower_transition.gpkg")
 
 
-if __name__ == "__main__":
-    download_data(COUNTRY_CODE)
+download_data(COUNTRY_CODE)

@@ -5,9 +5,10 @@ from shapely.geometry import Point, LineString
 import ast
 
 ## SETTINGS
-COUNTRY_CODE = "NG"
-DATA_PATH = "data/"
-BUFFER_DISTANCE = 250
+import config
+COUNTRY_CODE = config.COUNTRY_CODE
+DATA_PATH = config.DATA_PATH
+BUFFER_DISTANCE = config.BUFFER_DISTANCE
 
 
 ## Prepare power tower transition
@@ -88,10 +89,12 @@ for i in range(2):
     dftemp["osmid"] = "node/" + gdf_line[f"node{i}"].map(str)
     copy_gdf_line.append(dftemp)
 
-dftemp = pd.DataFrame([{"osmid":key, "geometry":val, "grid_role":"international"} for key, val in dic_international_nodes.items()])
-gdf_international = gpd.GeoDataFrame(dftemp, geometry="geometry", crs=3857)
-
-df_graph_nodes = pd.concat(copy_gdf_line + [copy_gdf_transition, copy_gdf_sub, gdf_international])
+if len(dic_international_nodes) > 0:
+    dftemp = pd.DataFrame([{"osmid":key, "geometry":val, "grid_role":"international"} for key, val in dic_international_nodes.items()])
+    gdf_international = gpd.GeoDataFrame(dftemp, geometry="geometry", crs=3857)
+    df_graph_nodes = pd.concat(copy_gdf_line + [copy_gdf_transition, copy_gdf_sub, gdf_international])
+else:
+    df_graph_nodes = pd.concat(copy_gdf_line + [copy_gdf_transition, copy_gdf_sub])
 
 for i in range(2):
     del df_graph_nodes[f"p{i}"]

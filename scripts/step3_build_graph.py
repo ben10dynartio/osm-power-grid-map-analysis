@@ -4,8 +4,9 @@ import pandas as pd
 from shapely.geometry import Point, LineString
 
 ## SETTINGS
-COUNTRY_CODE = "BO"
-DATA_PATH = "data/"
+import config
+COUNTRY_CODE = config.COUNTRY_CODE
+DATA_PATH = config.DATA_PATH
 
 def merge_two_lines_on_node(graph, node):
     edges = graph.edges(node)
