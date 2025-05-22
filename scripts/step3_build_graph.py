@@ -1,3 +1,4 @@
+import json
 import networkx as nx
 import geopandas as gpd
 import pandas as pd
@@ -79,8 +80,12 @@ gdf_edges.to_file(DATA_PATH + COUNTRY_CODE + "/post_graph_power_lines.gpkg")
 
 
 ## Graph analysis
-print("Number of international connections", len([n for n in G.nodes if G.nodes[n]["grid_role"]=="international"]))
-print("Number of substations", len(gdf_nodes[gdf_nodes["grid_role"]=="substation"]))
+stats = {}
+stats["nb_international_connections"] =  len([n for n in G.nodes if G.nodes[n]["grid_role"]=="international"])
+stats["nb_substations"] = len(gdf_nodes[gdf_nodes["grid_role"]=="substation"])
+print("Number of international connections", stats["nb_international_connections"])
+print("Number of substations", stats["nb_substations"] )
+
 list_graph_subsets = list(nx.connected_components(G))
 graph_stats = []
 for l in list_graph_subsets:
@@ -92,7 +97,8 @@ for l in list_graph_subsets:
 
 df_stat = pd.DataFrame(graph_stats)
 df_stat = df_stat.sort_values(["nbsub", "nbseg"], ascending=False)
-print("Grid connectivity = ", end="")
-for x in df_stat.to_dict(orient='records'):
-    print(f"({x['nbsub']}x{x['nbseg']}) + ", end = "")
-print("\n")
+stats["grid_connectivity"] = " + ". join(f"{x['nbsub']}x{x['nbseg']}" for x in df_stat.to_dict(orient='records'))
+print("Grid connectivity = ", stats["grid_connectivity"])
+
+with open(DATA_PATH + COUNTRY_CODE + "/power_grid_stats.json", 'w', encoding='utf-8') as file:
+    json.dump(stats, file)

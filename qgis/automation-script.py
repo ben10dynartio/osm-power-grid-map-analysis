@@ -1,15 +1,12 @@
 import math
+import os
 
-COUNTRY_LIST = {
-    "MG":"Madagascar",
-    "LB":"Lebanon",
-    "EC":"Ecuador",
-    "SZ":"Eswatini",
-    "NP":"Nepal",
-}
+COUNTRY_LIST = {'AE': 'United Arab Emirates', 'AF': 'Afghanistan', 'AM': 'Armenia', 'AZ': 'Azerbaijan', 'BD': 'Bangladesh', 'BH': 'Bahrain', 'BN': 'Brunei', 'BT': 'Bhutan', 'ID': 'Indonesia', 'IL': 'Israel', 'IQ': 'Iraq', 'IR': 'Iran', 'JO': 'Jordan', 'JP': 'Japan', 'KG': 'Kyrgyzstan', 'KH': 'Cambodia', 'KP': 'North Korea', 'KR': 'South Korea', 'KW': 'Kuwait', 'KZ': 'Kazakhstan', 'LA': 'Laos', 'LB': 'Lebanon', 'LK': 'Sri Lanka', 'MM': 'Myanmar', 'MN': 'Mongolia', 'MV': 'Maldives', 'MY': 'Malaysia', 'NP': 'Nepal', 'OM': 'Oman', 'PH': 'Philippines', 'PK': 'Pakistan', 'PS': 'State of Palestine', 'QA': 'Qatar', 'SA': 'Saudi Arabia', 'SG': 'Singapore', 'SY': 'Syria', 'TH': 'Thailand', 'TJ': 'Tajikistan', 'TL': 'Timor-Leste', 'TM': 'Turkmenistan', 'TR': 'Turkey', 'TW': 'Taiwan', 'UZ': 'Uzbekistan', 'VN': 'Vietnam', 'YE': 'Yemen'}
+
 STYLE_REF_COUNTRY_CODE = "BO" # do not change
-DATA_FOLDER = "../data/"
-EXPORT_FOLDER = "../export/"
+DATA_FOLDER = Path(__file__).parent.parent / "data"
+EXPORT_FOLDER = Path(__file__).parent.parent / "export"
+QGIS_FOLDER = Path(__file__).parent
 
 DATA_LAYERS = ['osm_brut_country_shape', 'post_graph_power_lines', 
 'osm_brut_power_line', 'osm_brut_power_tower_transition', 
@@ -59,11 +56,14 @@ def create_country_group(country_code, country_name):
         print("-- Group creation and data import")
         add_layer_group(GROUP_NAME)
         
-
         for layer_name in DATA_LAYERS:
-            path = f"{DATA_FOLDER}{COUNTRY_CODE}/{layer_name}.gpkg"
-            layer = QgsVectorLayer(path, layer_name, "ogr")
+            path = DATA_FOLDER / f"{COUNTRY_CODE}/{layer_name}.gpkg"
+            if not os.path.isfile(path):
+                print(f"-- File '{path}' not found")
+                raise FileNotFoundError
+            layer = QgsVectorLayer(str(path), layer_name, "ogr")
             ProjectInstance.addMapLayer(layer)
+            print(f"-- Import File '{path}'")
 
         for layer_name in DATA_LAYERS:
             layer = get_layer(layer_name, COUNTRY_CODE)
@@ -185,14 +185,20 @@ def visibility_and_export(country_code, map_style):
     exporter = QgsLayoutExporter(sourcelayout)
     export_settings = QgsLayoutExporter.ImageExportSettings()
     export_settings.dpi = 200
-    exporter.exportToImage(f"{EXPORT_FOLDER}{country_code}/{filename}", 
+    exporter.exportToImage(str(EXPORT_FOLDER / f"{country_code}/{filename}"), 
     export_settings)
 
+# Change working directory
+os.chdir(QGIS_FOLDER)
+print("Working directory =", os.getcwd(), " / data_path =", DATA_FOLDER)
 for COUNTRY_CODE, COUNTRY_NAME in COUNTRY_LIST.items():
     print(f"> Starting execution for {COUNTRY_NAME} ({COUNTRY_CODE})")
-    QgsExpressionContextUtils.setProjectVariable(ProjectInstance, 'country_name', COUNTRY_NAME)
-    create_country_group(COUNTRY_CODE, COUNTRY_NAME)
-    set_map_bounding_box(COUNTRY_CODE)
-    for my_map_style in ["graph", "map"]:
-        visibility_and_export(COUNTRY_CODE, my_map_style)
-    print(f"> End {COUNTRY_CODE}")
+    try:
+        QgsExpressionContextUtils.setProjectVariable(ProjectInstance, 'country_name', COUNTRY_NAME)
+        create_country_group(COUNTRY_CODE, COUNTRY_NAME)
+        set_map_bounding_box(COUNTRY_CODE)
+        for my_map_style in ["graph", "map"]:
+            visibility_and_export(COUNTRY_CODE, my_map_style)
+        print(f"> End {COUNTRY_CODE}\n")
+    except FileNotFoundError as e:
+        print(f"Error with {COUNTRY_NAME} ({COUNTRY_CODE}) =>", e)
