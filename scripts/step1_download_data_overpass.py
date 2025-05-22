@@ -91,10 +91,11 @@ def download_data(countrycode):
     gdf = overpass_response_to_gdf(overpass_response, tags=["name", "name:en"])
     gdf.to_file(DATA_PATH + countrycode + "/osm_brut_country_shape.gpkg")
 
-    print("-- Downloading country cities")
+    # Not necessary (and makes problems for some countries)
+    """print("-- Downloading country cities")
     overpass_response = query_country_cities(countrycode)
     gdf = overpass_response_to_gdf(overpass_response, tags=["name", "name:en", "capital", "place", "population", "wikidata"])
-    gdf.to_file(DATA_PATH + countrycode + "/osm_brut_country_cities.gpkg")
+    gdf.to_file(DATA_PATH + countrycode + "/osm_brut_country_cities.gpkg")"""
 
     print("-- Downloading power lines")
     overpass_response = query_powerline(countrycode)
