@@ -58,7 +58,10 @@ Once the right layers are enable:
 
 * Go to Menu -> Plugins / Python Console.
 * In the new window, click on the 'show editor' button, then on 'open a script' button and choose `automation-script.py` file.
-* Configure the countries you want to process in the `COUNTRY_LIST` variable, then run the script. Be aware that the 3 python scripts previously presented must have been executed for the concerned countries (they are not called from QGIS).
+* Configure the countries you want to process in the `COUNTRY_LIST` variable, then run the script.
+* Be aware that :
+    * Once the script started, there is no way to stop it (Ctrl+C isn't working). Be patient until the end (or kill Qgis process), and do not use a too long country list.
+    * the 3 python scripts previously presented must have been executed for the concerned countries (they are not called from QGIS).
 
 
 
