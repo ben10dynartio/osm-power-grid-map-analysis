@@ -1,12 +1,18 @@
 import math
 import os
 
-COUNTRY_LIST = {'AE': 'United Arab Emirates', 'AF': 'Afghanistan', 'AM': 'Armenia'}
+COUNTRY_LIST = {'BO' : "Bolivia"}
 
 STYLE_REF_COUNTRY_CODE = "BO" # do not change
 DATA_FOLDER = Path(__file__).parent.parent / "data"
 EXPORT_FOLDER = Path(__file__).parent.parent / "export"
+EXPORT_FILENAME_STMAP = "high-voltage-network.jpg" 
+EXPORT_FILENAME_GRID = "grid-connectivity.jpg"
+        
 QGIS_FOLDER = Path(__file__).parent
+QGIS_AUTOMATIZED_LAYOUT = "Automatized-Square"
+QGIS_EXPORT_HAS_LEGEND = False
+
 
 DATA_LAYERS = ['osm_brut_country_shape', 'post_graph_power_lines', 
 'osm_brut_power_line', 'osm_brut_power_tower_transition', 
@@ -80,7 +86,9 @@ def create_country_group(country_code, country_name):
         print("-- Group already exist, no import")
         
 def set_map_bounding_box(country_code):
-    
+    """
+    Configure Map Layout to fit the whole country
+    """
     country_layer = get_layer('osm_brut_country_shape', country_code)
     country_layer.selectAll()
     feature = country_layer.selectedFeatures()[0]
@@ -97,7 +105,7 @@ def set_map_bounding_box(country_code):
 
     ymax, ymin = new_box.yMaximum(), new_box.yMinimum()
     deltay = ymax-ymin
-    ymax, ymin = ymax + 0.05*deltay, ymin - 0.05*deltay
+    ymax, ymin = ymax + 0.03*deltay, ymin - 0.07*deltay
 
     QgsExpressionContextUtils.setProjectVariable(ProjectInstance, 'xMaximum', xmax)
     QgsExpressionContextUtils.setProjectVariable(ProjectInstance, 'xMinimum', xmin)
@@ -163,20 +171,23 @@ def show_network_layers():
 
 
 def visibility_and_export(country_code, map_style):
-    sourcelayout = ggs_layoutmanager.layoutByName('Automatized')
-    graph_legend = sourcelayout.itemById('Legend:Grid connectivity')
-    map_legend = sourcelayout.itemById('Legend:High-Voltage Network')
+    sourcelayout = ggs_layoutmanager.layoutByName(QGIS_AUTOMATIZED_LAYOUT)
+    if QGIS_EXPORT_HAS_LEGEND :
+        graph_legend = sourcelayout.itemById('Legend:Grid connectivity')
+        map_legend = sourcelayout.itemById('Legend:High-Voltage Network')
     show_layer("all", False)
     if map_style =="graph":
         show_grid_connectivity_layers()
-        graph_legend.setVisibility(True)
-        map_legend.setVisibility(False)
-        filename = "grid-connectivity.png"
+        if QGIS_EXPORT_HAS_LEGEND :
+            graph_legend.setVisibility(True)
+            map_legend.setVisibility(False)
+        filename = EXPORT_FILENAME_GRID
     elif map_style =="map":
         show_network_layers()
-        graph_legend.setVisibility(False)
-        map_legend.setVisibility(True)
-        filename = "high-voltage-network.png"
+        if QGIS_EXPORT_HAS_LEGEND :
+            graph_legend.setVisibility(False)
+            map_legend.setVisibility(True)
+        filename = EXPORT_FILENAME_STMAP
     else:
         raise ValueError("Unknown map style = " + str(map_style))
 
