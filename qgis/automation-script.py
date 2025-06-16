@@ -1,7 +1,7 @@
 import math
 import os
 
-COUNTRY_LIST = {'BO' : "Bolivia"}
+COUNTRY_LIST = {'BO' : "Bolivia", "NP":"Nepal"}
 
 STYLE_REF_COUNTRY_CODE = "BO" # do not change
 DATA_FOLDER = Path(__file__).parent.parent / "data"

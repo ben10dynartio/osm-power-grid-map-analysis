@@ -7,7 +7,7 @@ config.DATA_PATH = "../data/"
 config.BUFFER_DISTANCE = 250
 
 # Config for this script
-COUNTRY_LIST = {'AO': 'Angola', 'BF': 'Burkina Faso', 'BI': 'Burundi'}
+COUNTRY_LIST = {'BO': 'Bolivia', 'NP': 'Nepal'}
 
 # set it to a two-digit country code to skip all countries until this one (the indicated code will be processed)
 # Useful we re-running the script if an error has been encountered, without modifying country list
