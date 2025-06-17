@@ -29,10 +29,10 @@ See result examples for Nepal below.
 
 ### Manual map production
 
-* See [#QGIStips](#QGIS_tips_for_beginners) below if needed.
+* See [#QGIStips](#qgis-tips-for-beginners) below if needed.
 * Go to Project / Properties / Variable and set the `country_name` variable.
-* Import all produced files by the python scripts (by default in data folder) into QGIS except pre_graph_power_lines.gpkg which is not needed. [#QGIStips](#QGIS_tips_for_beginners)
-* Copy/paste style from the existing layers, e.g. from Bolivia (BO), to the new layers with the same name. [#QGIStips](#QGIS_tips_for_beginners)
+* Import all produced files by the python scripts (by default in data folder) into QGIS except pre_graph_power_lines.gpkg which is not needed. [#QGIStips](#qgis-tips-for-beginners)
+* Copy/paste style from the existing layers, e.g. from Bolivia (BO), to the new layers with the same name. [#QGIStips](#qgis-tips-for-beginners)
 * In the layer selection, disable all layers that are not concerning the country you work on. Disable, do not remove them : `Graph` & `Map` layer groups must stay as they are used for building the map legend, and `BO - Bolivia` group is used as style reference.
 
 The QGIS project may help to produce two map templates (see example for Nepal above).
