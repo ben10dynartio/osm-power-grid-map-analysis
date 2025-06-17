@@ -84,12 +84,12 @@ def overpass_response_to_gdf(response, tags=[]):
 
 
 def download_data(countrycode):
-    Path(DATA_PATH + countrycode).mkdir(parents=True, exist_ok=True)
+    Path(DATA_PATH / countrycode).mkdir(parents=True, exist_ok=True)
 
-    print("-- Downloading country shape")
+    print("-- Downloading country shape of", countrycode)
     overpass_response = query_country_shape(countrycode)
     gdf = overpass_response_to_gdf(overpass_response, tags=["name", "name:en"])
-    gdf.to_file(DATA_PATH + countrycode + "/osm_brut_country_shape.gpkg")
+    gdf.to_file(DATA_PATH / countrycode / "osm_brut_country_shape.gpkg")
 
     # Not necessary (and makes problems for some countries)
     """print("-- Downloading country cities")
@@ -100,17 +100,17 @@ def download_data(countrycode):
     print("-- Downloading power lines")
     overpass_response = query_powerline(countrycode)
     gdf = overpass_response_to_gdf(overpass_response, tags=["power", "circuits", "cables", "voltage"])
-    gdf.to_file(DATA_PATH + countrycode + "/osm_brut_power_line.gpkg")
+    gdf.to_file(DATA_PATH / countrycode / "osm_brut_power_line.gpkg")
 
     print("-- Downloading substations")
     overpass_response = query_substation(countrycode)
     gdf = overpass_response_to_gdf(overpass_response, tags=["power", "substation"])
-    gdf.to_file(DATA_PATH + countrycode + "/osm_brut_power_substation.gpkg")
+    gdf.to_file(DATA_PATH / countrycode / "osm_brut_power_substation.gpkg")
 
     print("-- Downloading towers and transitions")
     overpass_response = query_node_tower_transition(countrycode)
     gdf = overpass_response_to_gdf(overpass_response, tags=["power", "line_management"])
-    gdf.to_file(DATA_PATH + countrycode + "/osm_brut_power_tower_transition.gpkg")
+    gdf.to_file(DATA_PATH / countrycode / "osm_brut_power_tower_transition.gpkg")
 
 
 download_data(COUNTRY_CODE)

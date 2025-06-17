@@ -12,13 +12,13 @@ BUFFER_DISTANCE = config.BUFFER_DISTANCE
 
 
 ## Prepare power tower transition
-gdf_tower = gpd.read_file(DATA_PATH + COUNTRY_CODE + "/osm_brut_power_tower_transition.gpkg").to_crs(epsg=3857)
+gdf_tower = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_power_tower_transition.gpkg").to_crs(epsg=3857)
 gdf_tower = gdf_tower[gdf_tower["line_management"]=="transition"]
 set_transition_nodes = set(gdf_tower["id"].unique().tolist())
 print("-- Info : Number of 'line_management=transition' power nodes (usually 0) =", len(set_transition_nodes))
 
 ### Prepare power line dataset
-gdf_line = gpd.read_file(DATA_PATH + COUNTRY_CODE + "/osm_brut_power_line.gpkg").to_crs(epsg=3857)
+gdf_line = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_power_line.gpkg").to_crs(epsg=3857)
 #gdf_line = gdf_line[gdf_line["@numid"]<1_355_000_000] # keep only lines mapped before jan 2025
 
 gdf_line["geometry"] = gdf_line["geometry"].apply(lambda x: LineString([x.coords[0], x.coords[-1]]))
@@ -37,7 +37,7 @@ for i in range(2):
 
 
 ### Prepare substation dataset
-gdf_sub = gpd.read_file(DATA_PATH + COUNTRY_CODE + "/osm_brut_power_substation.gpkg").to_crs(epsg=3857)
+gdf_sub = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_power_substation.gpkg").to_crs(epsg=3857)
 gdf_sub["centroid"] = np.where((gdf_sub["type"]=="way") | (gdf_sub["type"]=="relation"),
                                gdf_sub["geometry"].centroid, gdf_sub["geometry"])
 gdf_sub["geometry"] = gdf_sub["geometry"].buffer(distance=BUFFER_DISTANCE)
@@ -47,7 +47,7 @@ dic_substation_geopoint = {r["osmid"] : r["centroid"] for r in gdf_sub.to_dict(o
 
 
 ## Spatial join ends of lines with substations
-gdf_country_shape = gpd.read_file(DATA_PATH + COUNTRY_CODE + "/osm_brut_country_shape.gpkg").to_crs(epsg=3857)
+gdf_country_shape = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_country_shape.gpkg").to_crs(epsg=3857)
 dic_res = []
 dic_international_nodes = {}
 for i in range(2):
@@ -106,7 +106,7 @@ for key in ["nodes", 'circuits', 'cables', 'voltage']:
         del df_graph_nodes[key]
 
 gdf_graph_nodes = gpd.GeoDataFrame(df_graph_nodes, geometry="geometry")
-gdf_graph_nodes.to_file(DATA_PATH + COUNTRY_CODE + "/pre_graph_power_nodes.gpkg")
+gdf_graph_nodes.to_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg")
 
 
 for i in range(2):
@@ -123,7 +123,7 @@ gdf_line = gdf_line[gdf_line["osmid_node0"]!=gdf_line["osmid_node1"]]
 
 del gdf_line["p0"]
 del gdf_line["p1"]
-gdf_line.to_file(DATA_PATH + COUNTRY_CODE + "/pre_graph_power_lines.gpkg")
+gdf_line.to_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_lines.gpkg")
 
 
 

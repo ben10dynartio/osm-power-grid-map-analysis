@@ -31,8 +31,8 @@ def check_if_connected(graph, node):
             return graph.nodes[node]["status"]
     return "disconnected"
 
-gdf_nodes = gpd.read_file(DATA_PATH + COUNTRY_CODE + "/pre_graph_power_nodes.gpkg").to_crs(epsg=3857)
-gdf_lines = gpd.read_file(DATA_PATH + COUNTRY_CODE + "/pre_graph_power_lines.gpkg").to_crs(epsg=3857)
+gdf_nodes = gpd.read_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg").to_crs(epsg=3857)
+gdf_lines = gpd.read_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_lines.gpkg").to_crs(epsg=3857)
 gdf_lines = gdf_lines[gdf_lines["id"]<1355000000]
 #gdf_nodes = gdf_nodes[(gdf_nodes["id"]<1355000000) & (gdf_nodes["type"]=="way")]
 
@@ -71,12 +71,12 @@ for node in G.nodes:
 keys = ["grid_role", "status", "connections", "geometry"]
 data_nodes = [{**{"osmid":n}, **{key:G.nodes[n][key] for key in keys}} for n in G.nodes]
 gdf_nodes = gpd.GeoDataFrame(data_nodes, geometry="geometry", crs=3857)
-gdf_nodes.to_file(DATA_PATH + COUNTRY_CODE + "/post_graph_power_nodes.gpkg")
+gdf_nodes.to_file(DATA_PATH / COUNTRY_CODE / "post_graph_power_nodes.gpkg")
 
 data_edges = [{"status":G.edges[n]["status"], "node0":n[0], "node1":n[1],
                "geometry":LineString([G.nodes[n[0]]["geometry"], G.nodes[n[1]]["geometry"]])} for n in G.edges]
 gdf_edges = gpd.GeoDataFrame(data_edges, geometry="geometry", crs=3857)
-gdf_edges.to_file(DATA_PATH + COUNTRY_CODE + "/post_graph_power_lines.gpkg")
+gdf_edges.to_file(DATA_PATH / COUNTRY_CODE / "post_graph_power_lines.gpkg")
 
 
 ## Graph analysis
@@ -100,5 +100,5 @@ df_stat = df_stat.sort_values(["nbsub", "nbseg"], ascending=False)
 stats["grid_connectivity"] = " + ". join(f"{x['nbsub']}x{x['nbseg']}" for x in df_stat.to_dict(orient='records'))
 print("Grid connectivity = ", stats["grid_connectivity"])
 
-with open(DATA_PATH + COUNTRY_CODE + "/power_grid_stats.json", 'w', encoding='utf-8') as file:
+with open(DATA_PATH / COUNTRY_CODE / "power_grid_stats.json", 'w', encoding='utf-8') as file:
     json.dump(stats, file)
