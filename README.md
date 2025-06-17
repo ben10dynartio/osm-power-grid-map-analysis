@@ -29,9 +29,10 @@ See result examples for Nepal below.
 
 ### Manual map production
 
+* See [#QGIStips](# QGIS tips for beginners) below if needed.
 * Go to Project / Properties / Variable and set the `country_name` variable.
-* Import all produced files by the python scripts (by default in data folder) into QGIS except pre_graph_power_lines.gpkg which is not needed.
-* Copy/paste style from the existing layers, e.g. from Bolivia (BO), to the new layers with the same name - (right-click on a layer / Styles / Copy Style / All categories ; thus paste on imported layer)
+* Import all produced files by the python scripts (by default in data folder) into QGIS except pre_graph_power_lines.gpkg which is not needed. [#QGIStips](# QGIS tips for beginners)
+* Copy/paste style from the existing layers, e.g. from Bolivia (BO), to the new layers with the same name. [#QGIStips](# QGIS tips for beginners)
 * In the layer selection, disable all layers that are not concerning the country you work on. Disable, do not remove them : `Graph` & `Map` layer groups must stay as they are used for building the map legend, and `BO - Bolivia` group is used as style reference.
 
 The QGIS project may help to produce two map templates (see example for Nepal above).
@@ -67,3 +68,13 @@ Once the right layers are enable:
 
 <img alt="Nepal high-voltage network" src="export/NP/high-voltage-network.jpg" width="35%"><img alt="Nepal progress map" src="export/NP/grid-connectivity.jpg" width="35%">
 
+## QGIS tips for beginners
+
+* Be sure QGIS `Layers` panel is shown. It is usually shown on screen left. If not, find the menu panel option, and activate it.
+* To import layer into QGIS, either :
+    * Drag and drop layer file into QGIS layer panel (if shown)
+    * Menu Layer / Add Layer / Add vector layer (or control+shift+V), then source browse for your file
+    * Find the layer from QGIS explorer panel  (if shown)
+* To copy/paste a style between two layers :
+    * In the layer panel, right-click on the reference style layer : choose Styles / Copy Style / All categories ;
+    * right-click on the destination layer : choose Styles / Paste Style / All categories
