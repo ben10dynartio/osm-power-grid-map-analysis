@@ -9,7 +9,7 @@ This repository contains 2 elements :
 
 See result examples for Nepal below.
 
-<img alt="Nepal high-voltage network" src="export/NP/high-voltage-network.png" width="45%"><img alt="Nepal progress map" src="export/NP/grid-connectivity.png" width="45%">
+<img alt="Nepal high-voltage network" src="export/NP/high-voltage-network-manual.jpg" width="45%"><img alt="Nepal progress map" src="export/NP/grid-connectivity-manual.jpg" width="45%">
 
 ## Configure and run python scripts
 
@@ -58,10 +58,12 @@ Once the right layers are enable:
 
 * Go to Menu -> Plugins / Python Console.
 * In the new window, click on the 'show editor' button, then on 'open a script' button and choose `automation-script.py` file.
-* Configure the countries you want to process in the `COUNTRY_LIST` variable, then run the script.
+* Configure the countries you want to process in the `COUNTRY_LIST` variable
+* The default template layout is `QGIS_AUTOMATIZED_LAYOUT = "Automatized-Square"` (see below example). You can change it to `"Automatized"` and set `QGIS_EXPORT_HAS_LEGEND = True` to have the same template as manual process.
+* Run the script.
 * Be aware that :
     * Once the script started, there is no way to stop it (Ctrl+C isn't working). Be patient until the end (or kill Qgis process), and do not use a too long country list.
     * the 3 python scripts previously presented must have been executed for the concerned countries (they are not called from QGIS).
 
-
+<img alt="Nepal high-voltage network" src="export/NP/high-voltage-network.jpg" width="35%"><img alt="Nepal progress map" src="export/NP/grid-connectivity.jpg" width="35%">
 
