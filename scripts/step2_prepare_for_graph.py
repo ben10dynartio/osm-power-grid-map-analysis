@@ -62,8 +62,11 @@ for i in range(2):
     set_inside_country = set(dftempbis[f"node{i}"].unique().tolist())
     dftemp = dftemp[~(dftemp[f"node{i}"]).isin(set_inside_country)]
     dic_international_nodes = {**dic_international_nodes,
-                              **{"node/" + str(r[f"node{i}"]) : r["geometry"]
+                              **{r[f"node{i}"] : r["geometry"]
                                  for r in dftemp.to_dict(orient='records')}}
+
+## Add complementary nodes to the internation node dict
+
 
 
 gdf_line = gdf_line[(gdf_line["substation0"] == "") | (gdf_line["substation1"] == "")
@@ -81,6 +84,7 @@ del copy_gdf_sub["centroid"]
 copy_gdf_line = []
 for i in range(2):
     dftemp = gdf_line.copy()
+    dftemp = dftemp[~dftemp[f"node{i}"].isin(dic_international_nodes)]
     # List of nodes that are neither substation nor trasnition
     dftemp = dftemp[dftemp[f"substation{i}"] == ""]
     dftemp = dftemp[~dftemp[f"transition{i}"]]
@@ -90,7 +94,7 @@ for i in range(2):
     copy_gdf_line.append(dftemp)
 
 if len(dic_international_nodes) > 0:
-    dftemp = pd.DataFrame([{"osmid":key, "geometry":val, "grid_role":"international"} for key, val in dic_international_nodes.items()])
+    dftemp = pd.DataFrame([{"osmid":"node/" + str(key), "geometry":val, "grid_role":"international"} for key, val in dic_international_nodes.items()])
     gdf_international = gpd.GeoDataFrame(dftemp, geometry="geometry", crs=3857)
     df_graph_nodes = pd.concat(copy_gdf_line + [copy_gdf_transition, copy_gdf_sub, gdf_international])
 else:
@@ -105,10 +109,10 @@ for key in ["nodes", 'circuits', 'cables', 'voltage']:
     if key in df_graph_nodes.columns:
         del df_graph_nodes[key]
 
-gdf_graph_nodes = gpd.GeoDataFrame(df_graph_nodes, geometry="geometry")
-gdf_graph_nodes.to_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg")
 
 
+
+gdf_line["international"] = ""
 for i in range(2):
     gdf_line[f"p{i}"] = np.where(gdf_line[f"substation{i}"] != "",
                                  gdf_line[f"substation{i}"].apply(lambda x: dic_substation_geopoint.get(x)),
@@ -116,9 +120,25 @@ for i in range(2):
     gdf_line[f"osmid_node{i}"] = np.where(gdf_line[f"substation{i}"] != "",
                                  gdf_line[f"substation{i}"],
                                  "node/" + gdf_line[f"node{i}"].map(str))
+    gdf_line["international"] = np.where(gdf_line[f"node{i}"].isin(dic_international_nodes),
+                                         f"node{i}",
+                                         gdf_line["international"])
 gdf_line["geometry"] = gdf_line.apply(lambda r: LineString([r["p0"], r["p1"]]), axis=1)
 
-## This line remove errors, but theses errros should be seen and corrected
+
+gdf_line_international = gdf_line[gdf_line["international"] != ""].copy()
+set_international_inside_country_nodes = set(list(gdf_line_international["osmid_node0"])) | set(list(gdf_line_international["osmid_node1"]))
+
+# Set lambda_node connected to international line as international_in node
+df_graph_nodes["grid_role"] = np.where((df_graph_nodes["grid_role"] == "lambda_node") &
+                                       df_graph_nodes["osmid"].isin(set_international_inside_country_nodes),
+                                        "to_international",
+                                       df_graph_nodes["grid_role"])
+
+gdf_graph_nodes = gpd.GeoDataFrame(df_graph_nodes, geometry="geometry")
+gdf_graph_nodes.to_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg")
+
+## This line remove errors, but theses errors should be seen and corrected
 gdf_line = gdf_line[gdf_line["osmid_node0"]!=gdf_line["osmid_node1"]]
 
 del gdf_line["p0"]

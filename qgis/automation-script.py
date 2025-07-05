@@ -2,10 +2,12 @@ import math
 import os
 
 COUNTRY_LIST = {'BO' : "Bolivia", "NP":"Nepal"}
+COUNTRY_LIST = {'ZA': 'South Africa'}
 
 STYLE_REF_COUNTRY_CODE = "BO" # do not change
 DATA_FOLDER = Path(__file__).parent.parent / "data"
 EXPORT_FOLDER = Path(__file__).parent.parent / "export"
+CONFIG_SCRIPT_FILEPATH = Path(__file__).parent.parent / "scripts/config.toml"
 EXPORT_FILENAME_STMAP = "high-voltage-network.jpg" 
 EXPORT_FILENAME_GRID = "grid-connectivity.jpg"
         
@@ -40,6 +42,8 @@ def get_layer(name, countrycode):
 
 
 def move_layer(layer, group_name):
+    if not layer:
+        return
     myLayer = qgs_treeroot.findLayer(layer.id())
     myClone = myLayer.clone()
     parent = myLayer.parent()
@@ -66,6 +70,7 @@ def create_country_group(country_code, country_name):
             path = DATA_FOLDER / f"{COUNTRY_CODE}/{layer_name}.gpkg"
             if not os.path.isfile(path):
                 print(f"-- File '{path}' not found")
+                continue
                 raise FileNotFoundError
             layer = QgsVectorLayer(str(path), layer_name, "ogr")
             ProjectInstance.addMapLayer(layer)

@@ -23,7 +23,14 @@ def merge_two_lines_on_node(graph, node):
 
     #print(" ~~~~ ", edges, *new_nodes)
     graph.remove_node(node)
-    graph.add_edge(*new_nodes, status="undefined")
+    #print("Adding edge : ", new_nodes)
+    if len(new_nodes) != 2:
+        print("-- Possible Topology Error on node(s) - 2 nodes expected :", new_nodes, " / You might need to split the way")
+    elif new_nodes[0] != new_nodes[1]:
+        #print("-- Possible Topology Error on node(s) - Same origin-destination :", new_nodes[0])
+        graph.add_edge(*new_nodes, status="undefined")
+    else:
+        graph.add_edge(*new_nodes, status="undefined")
 
 def check_if_connected(graph, node):
     for e in graph.edges(node, keys=True):
@@ -33,7 +40,7 @@ def check_if_connected(graph, node):
 
 gdf_nodes = gpd.read_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg").to_crs(epsg=3857)
 gdf_lines = gpd.read_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_lines.gpkg").to_crs(epsg=3857)
-gdf_lines = gdf_lines[gdf_lines["id"]<1355000000]
+#gdf_lines = gdf_lines[gdf_lines["id"]<1355000000]
 #gdf_nodes = gdf_nodes[(gdf_nodes["id"]<1355000000) & (gdf_nodes["type"]=="way")]
 
 G = nx.MultiGraph()
@@ -41,7 +48,7 @@ G = nx.MultiGraph()
 gdf_nodes.apply(lambda node: G.add_node(node["osmid"], grid_role=node["grid_role"],
                                         geometry=node["geometry"], status="undefined", connections=""), axis=1)
 gdf_lines.apply(lambda line: G.add_edge(line["osmid_node0"], line["osmid_node1"], status="undefined",
-                                        osmid=line["osmid"]), axis=1)
+                                        osmid=line["osmid"], international=line["international"]), axis=1)
 
 
 # Removing lambda node that connect exactly 2 edges
@@ -51,6 +58,7 @@ while not is_complete:
     for node in G.nodes:
         #print(node, G.nodes[node])
         if (len(G.edges(node))==2) and (G.nodes[node]["grid_role"] == "lambda_node"):
+            #print("Merging on node:", node)
             merge_two_lines_on_node(G, node)
             is_complete = False
             break
@@ -74,6 +82,7 @@ gdf_nodes = gpd.GeoDataFrame(data_nodes, geometry="geometry", crs=3857)
 gdf_nodes.to_file(DATA_PATH / COUNTRY_CODE / "post_graph_power_nodes.gpkg")
 
 data_edges = [{"status":G.edges[n]["status"], "node0":n[0], "node1":n[1],
+               "international":G.edges[n].get("international"),
                "geometry":LineString([G.nodes[n[0]]["geometry"], G.nodes[n[1]]["geometry"]])} for n in G.edges]
 gdf_edges = gpd.GeoDataFrame(data_edges, geometry="geometry", crs=3857)
 gdf_edges.to_file(DATA_PATH / COUNTRY_CODE / "post_graph_power_lines.gpkg")
@@ -97,7 +106,14 @@ for l in list_graph_subsets:
 
 df_stat = pd.DataFrame(graph_stats)
 df_stat = df_stat.sort_values(["nbsub", "nbseg"], ascending=False)
-stats["grid_connectivity"] = " + ". join(f"{x['nbsub']}x{x['nbseg']}" for x in df_stat.to_dict(orient='records'))
+df_stat_text = df_stat["nbsub"].astype(str) + "x" + df_stat["nbseg"].astype(str)
+counts = df_stat_text.value_counts()
+
+stats["grid_connectivity"] = " + ". join(
+    [f"{counts[subseg]}*({subseg})" if counts[subseg] != 1 else f"{subseg}"
+     for subseg in df_stat_text.unique().tolist()])
+#print(counts)
+#stats["grid_connectivity"] = " + ". join(f"{x['nbsub']}x{x['nbseg']}" for x in df_stat.to_dict(orient='records'))
 print("Grid connectivity = ", stats["grid_connectivity"])
 
 with open(DATA_PATH / COUNTRY_CODE / "power_grid_stats.json", 'w', encoding='utf-8') as file:

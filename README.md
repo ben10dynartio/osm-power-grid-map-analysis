@@ -9,7 +9,7 @@ This repository contains 2 elements :
 
 See result examples for Nepal below.
 
-<img alt="Nepal high-voltage network" src="export/NP/high-voltage-network-manual.jpg" width="45%"><img alt="Nepal progress map" src="export/NP/grid-connectivity-manual.jpg" width="45%">
+<img alt="Nepal high-voltage network" src="img/example-nepal-high-voltage-network-manual.jpg" width="45%"><img alt="Nepal progress map" src="img/example-nepal-grid-connectivity-manual.jpg" width="45%">
 
 ## Configure and run python scripts
 
