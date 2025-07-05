@@ -110,7 +110,7 @@ for key in ["nodes", 'circuits', 'cables', 'voltage']:
         del df_graph_nodes[key]
 
 
-
+print("International nodes = ", dic_international_nodes)
 
 gdf_line["international"] = ""
 for i in range(2):

@@ -14,7 +14,9 @@ def merge_two_lines_on_node(graph, node):
     if len(edges) != 2:
         raise ValueError("Number of edges unexpected")
     new_nodes = []
+    osmid_list = []
     for e in edges:
+        osmid_list.append(graph.edges[*e, 0]["osmid"])
         if e[0] != node:
             new_nodes.append(e[0])
         if e[1] != node:
@@ -28,9 +30,9 @@ def merge_two_lines_on_node(graph, node):
         print("-- Possible Topology Error on node(s) - 2 nodes expected :", new_nodes, " / You might need to split the way")
     elif new_nodes[0] != new_nodes[1]:
         #print("-- Possible Topology Error on node(s) - Same origin-destination :", new_nodes[0])
-        graph.add_edge(*new_nodes, status="undefined")
+        graph.add_edge(*new_nodes, osmid = ";".join(osmid_list), status="undefined")
     else:
-        graph.add_edge(*new_nodes, status="undefined")
+        graph.add_edge(*new_nodes, osmid = ";".join(osmid_list), status="undefined")
 
 def check_if_connected(graph, node):
     for e in graph.edges(node, keys=True):
@@ -48,7 +50,7 @@ G = nx.MultiGraph()
 gdf_nodes.apply(lambda node: G.add_node(node["osmid"], grid_role=node["grid_role"],
                                         geometry=node["geometry"], status="undefined", connections=""), axis=1)
 gdf_lines.apply(lambda line: G.add_edge(line["osmid_node0"], line["osmid_node1"], status="undefined",
-                                        osmid=line["osmid"], international=line["international"]), axis=1)
+                                        osmid=line["osmid"], international=line.get("osmid_" + line["international"], "")), axis=1)
 
 
 # Removing lambda node that connect exactly 2 edges
@@ -81,8 +83,10 @@ data_nodes = [{**{"osmid":n}, **{key:G.nodes[n][key] for key in keys}} for n in 
 gdf_nodes = gpd.GeoDataFrame(data_nodes, geometry="geometry", crs=3857)
 gdf_nodes.to_file(DATA_PATH / COUNTRY_CODE / "post_graph_power_nodes.gpkg")
 
-data_edges = [{"status":G.edges[n]["status"], "node0":n[0], "node1":n[1],
-               "international":G.edges[n].get("international"),
+data_edges = [{"status":G.edges[n]["status"],
+               "node0":n[0], "node1":n[1],
+               "international":G.edges[n].get("international", ""),
+               "osmid":G.edges[n].get("osmid", ""),
                "geometry":LineString([G.nodes[n[0]]["geometry"], G.nodes[n[1]]["geometry"]])} for n in G.edges]
 gdf_edges = gpd.GeoDataFrame(data_edges, geometry="geometry", crs=3857)
 gdf_edges.to_file(DATA_PATH / COUNTRY_CODE / "post_graph_power_lines.gpkg")
