@@ -1,6 +1,6 @@
 from pathlib import Path
 
-COUNTRY_CODE = "KZ"
+COUNTRY_CODE = "LY"
 DATA_PATH = Path(__file__).parent.parent / "data"
 BUFFER_DISTANCE = 250
 

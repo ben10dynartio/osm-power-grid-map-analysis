@@ -88,6 +88,8 @@ data_edges = [{"status":G.edges[n]["status"],
                "international":G.edges[n].get("international", ""),
                "osmid":G.edges[n].get("osmid", ""),
                "geometry":LineString([G.nodes[n[0]]["geometry"], G.nodes[n[1]]["geometry"]])} for n in G.edges]
+if not data_edges:
+    data_edges = {"data_edges":[], "node0":[], "node1":[], "international":[], "osmid":[], "geometry":[]}
 gdf_edges = gpd.GeoDataFrame(data_edges, geometry="geometry", crs=3857)
 gdf_edges.to_file(DATA_PATH / COUNTRY_CODE / "post_graph_power_lines.gpkg")
 
@@ -109,13 +111,17 @@ for l in list_graph_subsets:
 
 
 df_stat = pd.DataFrame(graph_stats)
-df_stat = df_stat.sort_values(["nbsub", "nbseg"], ascending=False)
-df_stat_text = df_stat["nbsub"].astype(str) + "x" + df_stat["nbseg"].astype(str)
-counts = df_stat_text.value_counts()
 
-stats["grid_connectivity"] = " + ". join(
-    [f"{counts[subseg]}*({subseg})" if counts[subseg] != 1 else f"{subseg}"
-     for subseg in df_stat_text.unique().tolist()])
+if len(df_stat)==0:
+    stats["grid_connectivity"] = 0
+else:
+    df_stat = df_stat.sort_values(["nbsub", "nbseg"], ascending=False)
+    df_stat_text = df_stat["nbsub"].astype(str) + "x" + df_stat["nbseg"].astype(str)
+    counts = df_stat_text.value_counts()
+
+    stats["grid_connectivity"] = " + ". join(
+        [f"{counts[subseg]}*({subseg})" if counts[subseg] != 1 else f"{subseg}"
+         for subseg in df_stat_text.unique().tolist()])
 #print(counts)
 #stats["grid_connectivity"] = " + ". join(f"{x['nbsub']}x{x['nbseg']}" for x in df_stat.to_dict(orient='records'))
 print("Grid connectivity = ", stats["grid_connectivity"])

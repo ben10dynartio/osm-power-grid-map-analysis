@@ -76,8 +76,11 @@ def query_node_tower_transition(countrycode:str, querydate=None) -> str:
 
 def overpass_response_to_gdf(response, tags=[]):
     geojson = osm2geojson.json2geojson(response)
-    gdf = gpd.GeoDataFrame.from_features(geojson, crs=4326)
-    gdf["osmid"] = gdf["type"] + "/" + gdf["id"].astype(str)
+    if len(geojson['features']):
+        gdf = gpd.GeoDataFrame.from_features(geojson, crs=4326)
+        gdf["osmid"] = gdf["type"] + "/" + gdf["id"].astype(str)
+    else:
+        gdf = gpd.GeoDataFrame({"geometry":[], "tags":[], "osmid":[], "type":[], "id":[], "nodes":[]}, crs=4326)
     for tag in tags:
         gdf[tag] = gdf["tags"].apply(lambda x: x.get(tag))
     return gdf
