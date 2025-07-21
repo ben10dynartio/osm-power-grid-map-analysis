@@ -13,19 +13,27 @@ BUFFER_DISTANCE = config.BUFFER_DISTANCE
 
 ## Prepare power tower transition
 gdf_tower = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_power_tower_transition.gpkg").to_crs(epsg=3857)
+print("  -- Info : Number of power towers =", len(gdf_tower))
 gdf_tower = gdf_tower[gdf_tower["line_management"]=="transition"]
 set_transition_nodes = set(gdf_tower["id"].unique().tolist())
-print("-- Info : Number of 'line_management=transition' power nodes (usually 0) =", len(set_transition_nodes))
+print("  -- Info : Number of 'line_management=transition' power nodes (might be 0) =", len(set_transition_nodes))
 
 ### Prepare power line dataset
 gdf_line = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_power_line.gpkg").to_crs(epsg=3857)
+gdf_line["geom_type"] = gdf_line["geometry"].apply(lambda x : x.geom_type)
+print("  -- Info : Number of power lines =", len(gdf_line))
+print("  -- Info : Types of power line (only LineString should be there) =", gdf_line["geom_type"].unique().tolist())
+temp = gdf_line[gdf_line["geom_type"] != "LineString"]
+if len(temp):
+    print("  /!\\ Error of type for following objects : ", list(temp["osmid"]))
+gdf_line = gdf_line[gdf_line["geom_type"] == "LineString"]
 #gdf_line = gdf_line[gdf_line["@numid"]<1_355_000_000] # keep only lines mapped before jan 2025
 
 for row in gdf_line.to_dict(orient='records'):
     try:
         LineString([row["geometry"].coords[0], row["geometry"].coords[-1]])
     except NotImplementedError as e:
-        print("There is an error with item =", row)
+        print("  /!\\ There is an error with item =", row)
         raise e
 
 gdf_line["geometry"] = gdf_line["geometry"].apply(lambda x: LineString([x.coords[0], x.coords[-1]]))
@@ -114,7 +122,7 @@ for key in ["nodes", 'circuits', 'cables', 'voltage']:
         del df_graph_nodes[key]
 
 
-print("International nodes = ", dic_international_nodes)
+print("  -- Info : International nodes = ", dic_international_nodes.keys())
 
 gdf_line["international"] = ""
 set_international_inside_country_nodes = set()
@@ -144,11 +152,13 @@ gdf_graph_nodes = gpd.GeoDataFrame(df_graph_nodes, geometry="geometry")
 gdf_graph_nodes.to_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg")
 
 ## This line remove errors, but theses errors should be seen and corrected
-if len(gdf_line):
+if len(gdf_line) == 0:
+    gdf_line = gpd.GeoDataFrame({key:[] for key in gdf_line.columns}, geometry="geometry", crs=3857)
+    print("  /!\\ Lines-GeoDataFrame is empty")
+else:
     gdf_line = gdf_line[gdf_line["osmid_node0"]!=gdf_line["osmid_node1"]]
-
-del gdf_line["p0"]
-del gdf_line["p1"]
+    del gdf_line["p0"]
+    del gdf_line["p1"]
 
 gdf_line.to_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_lines.gpkg")
 

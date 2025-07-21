@@ -27,7 +27,7 @@ def merge_two_lines_on_node(graph, node):
     graph.remove_node(node)
     #print("Adding edge : ", new_nodes)
     if len(new_nodes) != 2:
-        print("-- Possible Topology Error on node(s) - 2 nodes expected :", new_nodes, " / You might need to split the way")
+        print("  /!\\ Possible Topology Error on node(s) - 2 nodes expected :", new_nodes, " / You might need to split the way")
     elif new_nodes[0] != new_nodes[1]:
         #print("-- Possible Topology Error on node(s) - Same origin-destination :", new_nodes[0])
         graph.add_edge(*new_nodes, osmid = ";".join(osmid_list), status="undefined")
@@ -98,8 +98,8 @@ gdf_edges.to_file(DATA_PATH / COUNTRY_CODE / "post_graph_power_lines.gpkg")
 stats = {}
 stats["nb_international_connections"] =  len([n for n in G.nodes if G.nodes[n]["grid_role"]=="international"])
 stats["nb_substations"] = len(gdf_nodes[gdf_nodes["grid_role"]=="substation"])
-print("Number of international connections", stats["nb_international_connections"])
-print("Number of substations", stats["nb_substations"] )
+print("  -- Number of international connections =", stats["nb_international_connections"])
+print("  -- Number of substations =", stats["nb_substations"] )
 
 list_graph_subsets = list(nx.connected_components(G))
 graph_stats = []
@@ -124,7 +124,7 @@ else:
          for subseg in df_stat_text.unique().tolist()])
 #print(counts)
 #stats["grid_connectivity"] = " + ". join(f"{x['nbsub']}x{x['nbseg']}" for x in df_stat.to_dict(orient='records'))
-print("Grid connectivity = ", stats["grid_connectivity"])
+print("  -- Grid connectivity = ", stats["grid_connectivity"])
 
 with open(DATA_PATH / COUNTRY_CODE / "power_grid_stats.json", 'w', encoding='utf-8') as file:
     json.dump(stats, file)

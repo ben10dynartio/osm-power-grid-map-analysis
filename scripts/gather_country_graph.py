@@ -7,12 +7,10 @@ import pandas as pd
 import numpy as np
 from shapely.geometry import Point, LineString
 
-from config import DATA_PATH
+from config import DATA_PATH, WORLD_COUNTRY_DICT
 
 # Config for this script
-COUNTRY_LIST = {'TZ': 'Tanzania', 'KE': 'Kenya', 'UG': 'Uganda'}
-Africa = {'AO': 'Angola', 'BF': 'Burkina Faso', 'BI': 'Burundi', 'BJ': 'Benin', 'BW': 'Botswana', 'CD': 'Democratic Republic of the Congo', 'CF': 'Central African Republic', 'CG': 'Republic of the Congo', 'CI': 'Ivory Coast', 'CM': 'Cameroon', 'CV': 'Cape Verde', 'DJ': 'Djibouti', 'DZ': 'Algeria', 'EG': 'Egypt', 'ER': 'Eritrea', 'ET': 'Ethiopia', 'GA': 'Gabon', 'GH': 'Ghana', 'GM': 'The Gambia', 'GN': 'Guinea', 'GQ': 'Equatorial Guinea', 'GW': 'Guinea-Bissau', 'KE': 'Kenya', 'KM': 'Comoros', 'LR': 'Liberia', 'LS': 'Lesotho', 'LY': 'Libya', 'MA': 'Morocco', 'MG': 'Madagascar', 'ML': 'Mali', 'MR': 'Mauritania', 'MU': 'Mauritius', 'MW': 'Malawi', 'MZ': 'Mozambique', 'NA': 'Namibia', 'NE': 'Niger', 'NG': 'Nigeria', 'RW': 'Rwanda', 'SC': 'Seychelles', 'SD': 'Sudan', 'SL': 'Sierra Leone', 'SN': 'Senegal', 'SO': 'Somalia', 'SS': 'South Sudan', 'ST': 'São Tomé and Príncipe', 'SZ': 'Eswatini', 'TD': 'Chad', 'TG': 'Togo', 'TN': 'Tunisia', 'TZ': 'Tanzania', 'UG': 'Uganda', 'ZA': 'South Africa', 'ZM': 'Zambia', 'ZW': 'Zimbabwe'}
-COUNTRY_LIST = Africa
+COUNTRY_LIST = WORLD_COUNTRY_DICT
 
 
 dfs_lines = {}
@@ -69,8 +67,14 @@ resultat = df_m_lines.groupby('osmid').agg({
         'country': fusion_country,
     }).reset_index()
 
+for row in resultat.to_dict(orient='records'):
+    try:
+        row["nodes"][1]
+    except Exception as e:
+        print("Error with item =", row)
+
 resultat["node0"] = resultat["nodes"].apply(lambda x: x[0])
-resultat["node1"] = resultat["nodes"].apply(lambda x: x[1])
+resultat["node1"] = resultat["nodes"].apply(lambda x: x[-1])
 resultat["geometry"] = resultat.apply(lambda x: LineString([get_geom(x["node0"]), get_geom(x["node1"])]), axis=1)
 resultat["status"] = "international"
 #print(resultat.iloc[0])
@@ -80,7 +84,7 @@ resultat["status"] = "international"
 composed_line = gpd.GeoDataFrame(pd.concat([dflines, resultat]), geometry="geometry", crs=3857)
 composed_line["status"] = np.where(composed_line["status"]=="undefined", "connected", composed_line["status"])
 del composed_line["international"]
-composed_line.to_file("../export-world/graph_lines.gpkg")
+composed_line.to_file("../export-world/graph_lines_world.gpkg")
 
-dfnodes.to_file("../export-world/graph_nodes.gpkg")
+dfnodes.to_file("../export-world/graph_nodes_world.gpkg")
 
