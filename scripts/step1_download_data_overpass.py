@@ -1,23 +1,47 @@
 import geopandas as gpd
+import pandas as pd
 from pathlib import Path
-import requests
-import osm2geojson
 
+from utils_ovp import overpass_query, overpass_response_to_gdf
 ## SETTINGS
 import config
 COUNTRY_CODE = config.COUNTRY_CODE
 DATA_PATH = config.DATA_PATH
 
+OSM_TAGS_WAY = ["name", "type", "route", "power", "voltage", "circuits", "cables", "wires", "operator", "operator:wikidata", "location", "note", "wikidata"]
 
-def overpass_query(query:str):
-    """Send an overpass query to the API """
-    url = "http://overpass-api.de/api/interpreter"
-    response = requests.get(url, params={'data': query})
 
-    if response.status_code == 200:
-        return response.json()
-    else:
-        raise RuntimeError(f"Erreur with query {response.status_code}: {response.text}")
+def main(countrycode):
+    Path(DATA_PATH / countrycode).mkdir(parents=True, exist_ok=True)
+
+    print("  -- Downloading country shape of", countrycode)
+    if countrycode != "PY":
+        # There is a osm2geojson.json2geojson error for Paraguay ... it need to be investigated
+        # Request shape manually instead for this country
+        overpass_response = query_country_shape(countrycode)
+        gdf = overpass_response_to_gdf(overpass_response, tags=["name", "name:en"])
+        gdf.to_file(DATA_PATH / countrycode / "osm_brut_country_shape.gpkg")
+
+    # Not necessary (and makes problems for some countries)
+    """print("-- Downloading country cities")
+    overpass_response = query_country_cities(countrycode)
+    gdf = overpass_response_to_gdf(overpass_response, tags=["name", "name:en", "capital", "place", "population", "wikidata"])
+    gdf.to_file(DATA_PATH + countrycode + "/osm_brut_country_cities.gpkg")"""
+
+    print("  -- Downloading power lines")
+    overpass_response = query_powerline(countrycode)
+    gdf = overpass_response_to_gdf(overpass_response, tags=["power", "circuits", "cables", "voltage", "wires"])
+    gdf.to_file(DATA_PATH / countrycode / "osm_brut_power_line.gpkg")
+
+    #print("  -- Downloading substations")
+    #overpass_response = query_substation(countrycode)
+    #gdf = overpass_response_to_gdf(overpass_response, tags=["power", "substation"])
+    #gdf.to_file(DATA_PATH / countrycode / "osm_brut_power_substation.gpkg")
+
+    print("  -- Downloading towers and transitions")
+    overpass_response = query_node_tower_transition(countrycode)
+    gdf = overpass_response_to_gdf(overpass_response, tags=["power", "line_management"])
+    gdf.to_file(DATA_PATH / countrycode / "osm_brut_power_tower_transition.gpkg")
 
 
 def query_country_shape(countrycode:str, querydate=None) -> str:
@@ -63,61 +87,18 @@ def query_substation(countrycode:str, querydate=None) -> str:
     return overpass_query(query)
 
 
-def query_node_tower_transition(countrycode:str, querydate=None) -> str:
+def query_node_tower_transition(countrycode:str, querydate=None, verbose=False) -> str:
     # Add date if it is precised
     strdate = f"[date:\"{querydate}T00:00:00Z\"]" if querydate is not None else ""
     # Build query
     query = f"""[out:json][timeout:1000]{strdate};
                 area["ISO3166-1:alpha2"={countrycode}]->.searchArea;
-                (node["power"="tower"](area.searchArea);node["line_management"="transition"](area.searchArea););
+                (node["power"="tower"](area.searchArea);node["line_management"](area.searchArea);node["power"="connection"](area.searchArea););
                 out meta geom;"""
+    if verbose: print(query)
     return overpass_query(query)
 
 
-def overpass_response_to_gdf(response, tags=[]):
-    geojson = osm2geojson.json2geojson(response)
-    if len(geojson['features']):
-        gdf = gpd.GeoDataFrame.from_features(geojson, crs=4326)
-        gdf["osmid"] = gdf["type"] + "/" + gdf["id"].astype(str)
-    else:
-        print("  /!\\ no feature or error")
-        gdf = gpd.GeoDataFrame({"geometry":[], "tags":[], "osmid":[], "type":[], "id":[], "nodes":[]}, crs=4326)
-    for tag in tags:
-        gdf[tag] = gdf["tags"].apply(lambda x: x.get(tag))
-    return gdf
 
-
-def download_data(countrycode):
-    Path(DATA_PATH / countrycode).mkdir(parents=True, exist_ok=True)
-
-    print("  -- Downloading country shape of", countrycode)
-    if countrycode != "PY":
-        # There is a osm2geojson.json2geojson error for Paraguay ... it need to be investigated
-        # Request shape manually instead for this country
-        overpass_response = query_country_shape(countrycode)
-        gdf = overpass_response_to_gdf(overpass_response, tags=["name", "name:en"])
-        gdf.to_file(DATA_PATH / countrycode / "osm_brut_country_shape.gpkg")
-
-    # Not necessary (and makes problems for some countries)
-    """print("-- Downloading country cities")
-    overpass_response = query_country_cities(countrycode)
-    gdf = overpass_response_to_gdf(overpass_response, tags=["name", "name:en", "capital", "place", "population", "wikidata"])
-    gdf.to_file(DATA_PATH + countrycode + "/osm_brut_country_cities.gpkg")"""
-
-    print("  -- Downloading power lines")
-    overpass_response = query_powerline(countrycode)
-    gdf = overpass_response_to_gdf(overpass_response, tags=["power", "circuits", "cables", "voltage"])
-    gdf.to_file(DATA_PATH / countrycode / "osm_brut_power_line.gpkg")
-
-    print("  -- Downloading substations")
-    overpass_response = query_substation(countrycode)
-    gdf = overpass_response_to_gdf(overpass_response, tags=["power", "substation"])
-    gdf.to_file(DATA_PATH / countrycode / "osm_brut_power_substation.gpkg")
-
-    print("  -- Downloading towers and transitions")
-    overpass_response = query_node_tower_transition(countrycode)
-    gdf = overpass_response_to_gdf(overpass_response, tags=["power", "line_management"])
-    gdf.to_file(DATA_PATH / countrycode / "osm_brut_power_tower_transition.gpkg")
-
-
-download_data(COUNTRY_CODE)
+if __name__ == '__main__':
+    main(COUNTRY_CODE)

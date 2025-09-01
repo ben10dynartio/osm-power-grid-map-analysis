@@ -7,7 +7,8 @@ config.DATA_PATH = Path(__file__).parent.parent / "data"
 config.BUFFER_DISTANCE = 250
 
 # Config for this script
-COUNTRY_LIST = {'TZ': 'Tanzania', 'KE': 'Kenya', 'UG': 'Uganda'}
+COUNTRY_LIST = config.WORLD_COUNTRY_DICT #{'CO': 'Colombia'}
+COUNTRY_LIST = {'IT': 'Italy', 'ES': 'Spain', 'KR': 'South Korea'}
 
 # Continent dict that can be used as list
 Africa = {'AO': 'Angola', 'BF': 'Burkina Faso', 'BI': 'Burundi', 'BJ': 'Benin', 'BW': 'Botswana', 'CD': 'Democratic Republic of the Congo', 'CF': 'Central African Republic', 'CG': 'Republic of the Congo', 'CI': 'Ivory Coast', 'CM': 'Cameroon', 'CV': 'Cape Verde', 'DJ': 'Djibouti', 'DZ': 'Algeria', 'EG': 'Egypt', 'ER': 'Eritrea', 'ET': 'Ethiopia', 'GA': 'Gabon', 'GH': 'Ghana', 'GM': 'The Gambia', 'GN': 'Guinea', 'GQ': 'Equatorial Guinea', 'GW': 'Guinea-Bissau', 'KE': 'Kenya', 'KM': 'Comoros', 'LR': 'Liberia', 'LS': 'Lesotho', 'LY': 'Libya', 'MA': 'Morocco', 'MG': 'Madagascar', 'ML': 'Mali', 'MR': 'Mauritania', 'MU': 'Mauritius', 'MW': 'Malawi', 'MZ': 'Mozambique', 'NA': 'Namibia', 'NE': 'Niger', 'NG': 'Nigeria', 'RW': 'Rwanda', 'SC': 'Seychelles', 'SD': 'Sudan', 'SL': 'Sierra Leone', 'SN': 'Senegal', 'SO': 'Somalia', 'SS': 'South Sudan', 'ST': 'São Tomé and Príncipe', 'SZ': 'Eswatini', 'TD': 'Chad', 'TG': 'Togo', 'TN': 'Tunisia', 'TZ': 'Tanzania', 'UG': 'Uganda', 'ZA': 'South Africa', 'ZM': 'Zambia', 'ZW': 'Zimbabwe'}
@@ -20,7 +21,7 @@ NorthAmerica = {'AG': 'Antigua and Barbuda', 'BB': 'Barbados', 'BS': 'The Bahama
 Europe = {'AD': 'Andorra', 'AL': 'Albania', 'AT': 'Austria', 'BA': 'Bosnia and Herzegovina', 'BE': 'Belgium', 'BG': 'Bulgaria', 'BY': 'Belarus', 'CH': 'Switzerland', 'CY': 'Cyprus', 'CZ': 'Czech Republic', 'DE': 'Germany', 'DK': 'Kingdom of Denmark', 'EE': 'Estonia', 'ES': 'Spain', 'FI': 'Finland', 'FR': 'France', 'GB': 'United Kingdom', 'GE': 'Georgia', 'GR': 'Greece', 'HR': 'Croatia', 'HU': 'Hungary', 'IE': 'Ireland', 'IS': 'Iceland', 'IT': 'Italy', 'LI': 'Liechtenstein', 'LT': 'Lithuania', 'LU': 'Luxembourg', 'LV': 'Latvia', 'MC': 'Monaco', 'MD': 'Moldova', 'ME': 'Montenegro', 'MK': 'North Macedonia', 'MT': 'Malta', 'NL': 'Kingdom of the Netherlands', 'NO': 'Norway', 'PL': 'Poland', 'PT': 'Portugal', 'RO': 'Romania', 'RS': 'Serbia', 'RU': 'Russia', 'SE': 'Sweden', 'SI': 'Slovenia', 'SK': 'Slovakia', 'SM': 'San Marino', 'UA': 'Ukraine', 'VA': 'Vatican City'}
 
 # No Brazil, China and India in light dict
-COUNTRY_LIST = config.CONTINENTAL_COUNTRY_DICT["NorthAmerica"]
+#COUNTRY_LIST = config.CONTINENTAL_COUNTRY_DICT["NorthAmerica"]
 
 
 # set it to a two-digit country code to skip all countries until this one (the indicated code will be processed)
@@ -47,9 +48,9 @@ for code, name in COUNTRY_LIST.items():
         print(">> Step1 - Download data")
         exec(open(selfpathfolder / "step1_download_data_overpass.py").read())
         print(">> Step2 - Prepare for graph")
-        exec(open(selfpathfolder / "step2_prepare_for_graph.py").read())
+        #exec(open(selfpathfolder / "step2_prepare_for_graph.py").read())
         print(">> Step3 - Build graph and analyse connectivity")
-        exec(open(selfpathfolder / "step3_build_graph.py").read())
+        #exec(open(selfpathfolder / "step3_build_graph.py").read())
     except Exception as e:
         print("SCRIPT ERROR", e)
         list_errors[code] = name

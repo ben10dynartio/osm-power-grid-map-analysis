@@ -1,6 +1,8 @@
 from pathlib import Path
 
-COUNTRY_CODE = "MC"
+OSM_POWER_TAGS = ["name", "type", "route", "power", "voltage", "substation", "line", "circuits", "cables", "wires", "operator", "operator:wikidata", "location", "note", "wikidata"]
+
+COUNTRY_CODE = "CO"
 DATA_PATH = Path(__file__).parent.parent / "data"
 BUFFER_DISTANCE = 250
 

@@ -5,3 +5,4 @@ networkx
 requests
 osm2geojson
 shapely
+openpyxl

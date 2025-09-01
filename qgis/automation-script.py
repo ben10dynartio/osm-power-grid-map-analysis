@@ -1,9 +1,30 @@
 import math
 import os
+import time
 
 COUNTRY_LIST = {'BO' : "Bolivia", "NP":"Nepal"}
-COUNTRY_LIST = {'TZ': 'Tanzania'}
-
+COUNTRY_LIST = {
+#"BD":"Bangladesh",
+#"BO":"Bolivia",
+#"BA":"Bosnia and Herzegovina",
+#"BJ":"Benin",
+#"CI":"Ivory Coast (CI)",
+#"CN":"People's Republic of China (CN)",
+"CO":"Colombia",
+#"LK":"Sri Lanka",
+#"GE":"Georgia",
+#"KE":"Kenya",
+#"KH":"Cambodia",
+#"KZ":"Kazakhstan",
+#"NG":"Nigeria",
+#"NP":"Nepal",
+#"MN":"Mongolia",
+#"PK":"Pakistan",
+#"TM":"Turkmenistan",
+#"UZ":"Uzbekistan",
+#"UG":"Uganda",
+#"VN":"Vietnam (VN)",
+}
 
 STYLE_REF_COUNTRY_CODE = "BO" # do not change
 DATA_FOLDER = Path(__file__).parent.parent / "data"
@@ -218,4 +239,8 @@ for COUNTRY_CODE, COUNTRY_NAME in COUNTRY_LIST.items():
             visibility_and_export(COUNTRY_CODE, my_map_style)
         print(f"> End {COUNTRY_CODE}\n")
     except FileNotFoundError as e:
-        print(f"Error with {COUNTRY_NAME} ({COUNTRY_CODE}) =>", e)
+        print(f"FileNotFoundError with {COUNTRY_NAME} ({COUNTRY_CODE}) =>", e)
+    except IndexError as e:
+        print(f"IndexError with {COUNTRY_NAME} ({COUNTRY_CODE}) =>", e)
+    except UnboundLocalError as e:
+        print(f"UnboundLocalError with {COUNTRY_NAME} ({COUNTRY_CODE}) =>", e)
