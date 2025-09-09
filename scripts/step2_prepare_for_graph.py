@@ -14,17 +14,21 @@ def main():
     statistics = {}
 
     # ------------ Prepare power tower transition
-    gdf_tower = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_power_tower_transition.gpkg").to_crs(epsg=3857)
-    statistics["nb_power_tower"] = len(gdf_tower[gdf_tower["power"] == "tower"])
+    gdf_all_tower = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_power_tower_transition.gpkg").to_crs(epsg=3857)
+    statistics["nb_power_tower"] = len(gdf_all_tower[gdf_all_tower["power"] == "tower"])
     print("  -- Info : Number of power towers =", statistics["nb_power_tower"])
 
     ## Keeping only transition node (line_management not null or power=connection)
-    gdf_tower = gdf_tower[(gdf_tower["line_management"].notnull()) | (gdf_tower["power"] == "connection")]
+    gdf_tower = gdf_all_tower[(gdf_all_tower["line_management"].notnull()) | (gdf_all_tower["power"] == "connection")]
     gdf_tower = gdf_tower[(gdf_tower["line_management"] != "transpose") & (gdf_tower["power"] != "connection")]
-    gdf_tower["line_management"] = np.where(gdf_tower["power"].notnull(),
-                                            gdf_tower["line_management"].astype(str) + ";connection",
+    gdf_tower["line_management"] = np.where(gdf_tower["power"] == "connection",
+                                            gdf_tower["line_management"].apply(lambda x: x + ";" if x is not None else "") + "connection",
                                             gdf_tower["line_management"])
     gdf_tower["line_management"] = gdf_tower["line_management"].str.replace("None;", "")
+    # crossing management
+    set_crossing_node = set(gdf_tower[gdf_tower["line_management"] == "cross"]["id"].tolist())
+    gdf_tower = gdf_tower[gdf_tower["line_management"] != "cross"]
+
     set_transition_nodes = set(gdf_tower["id"].unique().tolist())
     statistics["nb_transition_node"] = len(set_transition_nodes)
     print("  -- Info : Number of transition power nodes =", statistics["nb_transition_node"])
@@ -46,6 +50,23 @@ def main():
         print("  /!\\ Error of type for following objects : ", list(temp["osmid"]))
     gdf_line = gdf_line[gdf_line["geom_type"] == "LineString"]
     # gdf_line = gdf_line[gdf_line["@numid"]<1_355_000_000] # keep only lines mapped before jan 2025
+
+    ## Remove node corresponding to crossing point to avoid connectivity
+    gdf_line["crossing"] = gdf_line["nodes_without_end"].apply(lambda x: len(set(x) & set_crossing_node))
+    gdf_cross = gdf_line[gdf_line["crossing"]>0]
+    myrowlist = []
+    for row in gdf_cross.to_dict(orient='records'):
+        myrow = row.copy()
+        for node in row["nodes"][1:-1]:
+            if node in set_crossing_node:
+                delcrossnode = myrow["nodes"].index(node)
+                myrow = remove_point_on_linestring(row, delcrossnode)
+        myrowlist.append(myrow)
+
+    gdf_without_cross = pd.DataFrame(myrowlist)
+    gdf_line = gdf_line[gdf_line["crossing"]==0]
+    gdf_line = gpd.GeoDataFrame(pd.concat([gdf_without_cross, gdf_line]), geometry="geometry", crs=3857)
+    # to process
 
     ## Check consistency of start and end points for power lines
     for row in gdf_line.to_dict(orient='records'):
@@ -99,20 +120,12 @@ def main():
         gdf_line[f"node{i}"] = gdf_line["nodes_end"].apply(lambda x: x[i])
         gdf_line[f"transition{i}"] = gdf_line[f"node{i}"].apply(lambda x: x in set_transition_nodes)
 
-
-
-    # Ex: 1234567 --> POINT(12.34 52.25)
-    """dic_line_geopoint = {}
-    for i in range(2):
-        dic_line_geopoint = {**dic_line_geopoint,
-                             **{r[f"node{i}"]: r[f"p{i}"] for r in gdf_line.to_dict(orient="records")}}"""
-
     ### Prepare substation dataset
     gdf_sub = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_clean_power_substation.gpkg").to_crs(epsg=3857)
     gdf_sub["centroid"] = gdf_sub["geometry"].centroid
     gdf_sub["geometry"] = gdf_sub["geometry"].buffer(distance=BUFFER_DISTANCE)
 
-    # Ex: way/1234567 --> POINT(12.34 52.25)
+    ## dic_substation_geopoint : Ex: way/1234567 --> POINT(12.34 52.25)
     dic_substation_geopoint = {r["osmid"]: r["centroid"] for r in gdf_sub.to_dict(orient="records")}
 
     ## Spatial join ends of lines with substations
@@ -132,7 +145,6 @@ def main():
 
     gdfprox_select = gdf_all_end_nodes[gdf_all_end_nodes["distance"]<BUFFER_DISTANCE]
     dic_node_to_sub = {k["node"]: k["osmid"] for k in gdfprox_select.to_dict(orient='records')}
-    print("DICT LINERES = ", dic_node_to_sub)
 
     for i in [1, 0]:
         gdf_line[f"substation{i}"] = gdf_line[f"node{i}"].apply(lambda x: dic_node_to_sub.get(x))
@@ -141,33 +153,13 @@ def main():
     gdfprox_clip = gdf_all_end_nodes.clip(gdf_country_shape).copy()
     set_inside_country = set(gdfprox_clip[f"node"].tolist())
     gdf_spec_nodes_international = gdf_all_end_nodes[~(gdf_all_end_nodes[f"node"]).isin(set_inside_country)].copy()
+    gdf_spec_nodes_international = gdf_spec_nodes_international[["node", "geometry"]]
     gdf_spec_nodes_international["grid_role"] = "international"
     gdf_spec_nodes_international["id"] = gdf_spec_nodes_international["node"]
     gdf_spec_nodes_international["osmid"] = "node/" + gdf_spec_nodes_international["id"].astype(str)
 
     set_international_nodes = set(gdf_spec_nodes_international["id"].tolist())
     #print("SET INTERNATIONAL NODES = ", set_international_nodes)
-
-    """for i in [1, 0]:
-        dftemp = gdf_line.copy()
-
-        dftemp["geometry"] = dftemp[f"p{i}"]
-        #dftemp = dftemp.sjoin(gdf_sub, how='left').fillna("")
-        dftemp =  dftemp.sjoin_nearest(gdf_sub, how='left', distance_col='distance')
-        dftemp = dftemp[dftemp["distance"]<BUFFER_DISTANCE]
-        print("DF ANALYSIS")
-        print(dftemp.iloc[0])
-        dic_lineres = {k["osmid_left"]: k["osmid_right"] for k in dftemp.to_dict(orient='records')}
-        gdf_line[f"substation{i}"] = gdf_line["osmid"].apply(lambda x: dic_lineres[x])
-
-        # Identify International end node
-        dftempbis = dftemp.clip(gdf_country_shape).copy()
-        set_inside_country = set(dftempbis[f"node{i}"].unique().tolist())
-        dftemp = dftemp[~(dftemp[f"node{i}"]).isin(set_inside_country)]
-        dic_international_nodes = {**dic_international_nodes,
-                                   **{r[f"node{i}"]: r["geometry"]
-                                      for r in dftemp.to_dict(orient='records')}}"""
-
 
     ## Selection of lines that are not within the same substation
     gdf_line = gdf_line[(gdf_line["substation0"] == "") | (gdf_line["substation1"] == "")
@@ -189,6 +181,10 @@ def main():
                 {"grid_role": "to_international", "id": row[f"node{i}"], "osmid": f"node/{row[f"node{i}"]}", "geometry":row[f"p{i}"]}
             )
     gdf_spec_nodes_to_international = gpd.GeoDataFrame(mylist_of_to_international_node, geometry="geometry", crs=3857)
+    gdf_spec_nodes_to_international = gdf_spec_nodes_to_international.merge(gdf_all_tower, how='left', left_on='id', right_on='id', suffixes=(None, "_merged"))
+    lstcol = [col for col in gdf_spec_nodes_to_international.columns if col.endswith("_merged")]
+    for col in lstcol:
+        del gdf_spec_nodes_to_international[col]
 
     ## List node linked to line_management
     gdf_spec_nodes_line_management = gdf_tower.copy()
@@ -200,22 +196,19 @@ def main():
     gdf_spec_nodes_substation["geometry"] = gdf_spec_nodes_substation["centroid"]
     del gdf_spec_nodes_substation["centroid"]
 
+    # Manage lambda node
     set_lambda_node = set()
-    gdf_line = gdf_line.fillna("")
-    print("GDF_LINE =")
-    print(gdf_line)
-    print(gdf_line.iloc[0])
     for i in [1, 0]:
         gdf_line[f"nodetype{i}"] = "lambda_node"
         gdf_line[f"osmid{i}"] = "node/" + gdf_line[f"node{i}"].astype(str)
 
         ## Process substation
         gdf_line[f"nodetype{i}"] = gdf_line.apply(
-            lambda r: "substation" if r[f"substation{i}"] != "" else r[f"nodetype{i}"], axis=1)
+            lambda r: "substation" if r[f"substation{i}"] is not None else r[f"nodetype{i}"], axis=1)
         gdf_line[f"p{i}"] = gdf_line.apply(
-            lambda r: dic_substation_geopoint.get(r[f"substation{i}"]) if r[f"substation{i}"] != "" else r[f"p{i}"], axis=1)
+            lambda r: dic_substation_geopoint.get(r[f"substation{i}"]) if r[f"substation{i}"] is not None else r[f"p{i}"], axis=1)
         gdf_line[f"osmid{i}"] = gdf_line.apply(
-            lambda r: r[f"substation{i}"] if r[f"substation{i}"] != "" else r[f"osmid{i}"], axis=1)
+            lambda r: r[f"substation{i}"] if r[f"substation{i}"] is not None else r[f"osmid{i}"], axis=1)
 
         ## Process international
         gdf_line[f"nodetype{i}"] = gdf_line.apply(
@@ -229,82 +222,42 @@ def main():
 
         tdf = gdf_line[gdf_line[f"nodetype{i}"]=="lambda_node"].copy()
         set_lambda_node |= set(tdf[f"node{i}"].tolist())
+
     gdf_line = gdf_line[gdf_line["osmid0"] != gdf_line["osmid1"]]
+    gdf_line["international_osmid"] = np.where(
+        gdf_line["osmid0"].apply(lambda x: int(x.replace("node/", "")) if x.startswith("node") else x).isin(set_all_int_node),
+        gdf_line["osmid0"], None)
+    gdf_line["international_osmid"] = np.where(
+        gdf_line["osmid1"].apply(lambda x: int(x.replace("node/", "")) if x.startswith("node") else x).isin(set_all_int_node),
+        gdf_line["osmid1"], gdf_line["international_osmid"])
 
     gdf_spec_nodes_lambda = gdf_all_end_nodes.copy()
+    gdf_spec_nodes_lambda = gdf_spec_nodes_lambda[["node", "geometry"]]
     gdf_spec_nodes_lambda["grid_role"] = "lambda_node"
     gdf_spec_nodes_lambda["id"] = gdf_spec_nodes_lambda["node"]
     gdf_spec_nodes_lambda["osmid"] = "node/" + gdf_spec_nodes_lambda["id"].astype(str)
     gdf_spec_nodes_lambda = gdf_spec_nodes_lambda[gdf_spec_nodes_lambda["id"].isin(set_lambda_node)]
     del gdf_spec_nodes_lambda["node"]
+    gdf_spec_nodes_lambda = gdf_spec_nodes_lambda.merge(gdf_all_tower, how='left', left_on='id', right_on='id', suffixes=(None, "_merged"))
+    lstcol = [col for col in gdf_spec_nodes_lambda.columns if col.endswith("_merged")]
+    for col in lstcol:
+        del gdf_spec_nodes_lambda[col]
 
     df_graph_nodes = pd.concat([gdf_spec_nodes_lambda, gdf_spec_nodes_substation, gdf_spec_nodes_line_management,
                                 gdf_spec_nodes_international, gdf_spec_nodes_to_international])
 
-
-    """copy_gdf_line = []
-
-    for i in range(2):
-        dftemp = gdf_line.copy()
-        if len(dftemp):
-            dftemp = dftemp[~dftemp[f"node{i}"].isin(dic_international_nodes)]
-            # List of nodes that are neither substation nor trasnition
-            dftemp = dftemp[dftemp[f"substation{i}"] == ""]
-            dftemp = dftemp[~dftemp[f"transition{i}"]]
-            dftemp["geometry"] = dftemp[f"p{i}"]
-            dftemp["grid_role"] = "lambda_node"
-            dftemp["osmid"] = "node/" + gdf_line[f"node{i}"].map(str)
-            copy_gdf_line.append(dftemp)
-
-    if len(dic_international_nodes) > 0:
-        dftemp = pd.DataFrame(
-            [{"osmid": "node/" + str(key), "geometry": val, "grid_role": "international"} for key, val in
-             dic_international_nodes.items()])
-        gdf_international = gpd.GeoDataFrame(dftemp, geometry="geometry", crs=3857)
-        df_graph_nodes = pd.concat(copy_gdf_line + [copy_gdf_transition, gdf_spec_nodes_substation, gdf_international])
-    else:
-        df_graph_nodes = pd.concat(copy_gdf_line + [copy_gdf_transition, gdf_spec_nodes_substation])"""
 
     for i in range(2):
         for key in [f"p{i}", f"substation{i}", f"node{i}", f"transition{i}"]:
             if key in df_graph_nodes.columns:
                 del df_graph_nodes[key]
 
-    for key in ["nodes", 'circuits', 'cables', 'voltage', 'distance', 'index_right']:
+    for key in ["nodes", 'circuits', 'cables', 'distance', 'index_right']:
         if key in df_graph_nodes.columns:
             del df_graph_nodes[key]
 
     print("  -- Info : International nodes = ", set_international_nodes)
 
-    """gdf_line["international"] = ""
-    set_international_inside_country_nodes = set()
-    if len(gdf_line):
-        for i in range(2):
-            gdf_line[f"p{i}"] = np.where(gdf_line[f"substation{i}"] != "",
-                                         gdf_line[f"substation{i}"].apply(lambda x: dic_substation_geopoint.get(x)),
-                                         gdf_line[f"p{i}"])
-            gdf_line[f"osmid_node{i}"] = np.where(gdf_line[f"substation{i}"] != "",
-                                                  gdf_line[f"substation{i}"],
-                                                  "node/" + gdf_line[f"node{i}"].map(str))
-            gdf_line["international"] = np.where(gdf_line[f"node{i}"].isin(dic_international_nodes),
-                                                 f"node{i}",
-                                                 gdf_line["international"])
-        for row in gdf_line.to_dict(orient='records'):
-            try:
-                LineString([row["p0"], row["p1"]])
-            except Exception:
-                print(" * ERROR LINESTRING-BUILD with", row)
-        gdf_line["geometry"] = gdf_line.apply(lambda r: LineString([r["p0"], r["p1"]]), axis=1)
-
-        gdf_line_international = gdf_line[gdf_line["international"] != ""].copy()
-        set_international_inside_country_nodes = set(list(gdf_line_international["osmid_node0"])) | set(
-            list(gdf_line_international["osmid_node1"]))
-
-    # Set lambda_node connected to international line as international_in node
-    df_graph_nodes["grid_role"] = np.where((df_graph_nodes["grid_role"] == "lambda_node") &
-                                           df_graph_nodes["osmid"].isin(set_international_inside_country_nodes),
-                                           "to_international",
-                                           df_graph_nodes["grid_role"])"""
     if len(gdf_line):
         for row in gdf_line.to_dict(orient='records'):
             try:
@@ -314,9 +267,6 @@ def main():
         gdf_line["geometry"] = gdf_line.apply(lambda r: LineString([r["p0"], r["p1"]]), axis=1)
 
     gdf_graph_nodes = gpd.GeoDataFrame(df_graph_nodes, geometry="geometry", crs=3857)
-    print("GRAPH node =")
-    print(gdf_graph_nodes)
-    print(gdf_graph_nodes.iloc[0])
     gdf_graph_nodes.to_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg")
 
     ## This line remove errors, but theses errors should be seen and corrected
@@ -329,15 +279,6 @@ def main():
 
     gdf_line.to_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_lines.gpkg")
 
-"""def has_branch_connection(nodes_set, row):
-    for i in range(2):
-        if row["nodes_end"][i] in nodes_set:
-            print("* ERROR INTERMEDIATE CONNECTION > https://openstreetmap.org/" + str(row["osmid"]) +
-                  " is connected in the middle through the node https://openstreetmap.org/node/" + str(
-                row["nodes_end"][i]))
-            return True
-    return False"""
-
 
 def simplify_line(row):
     try:
@@ -345,12 +286,36 @@ def simplify_line(row):
     except IndexError:
         print(" * ERROR SIMPLIFYING > with row =", row)
 
+
 def index_of_node(osmid_nodelist, osmid_node):
   try:
     return osmid_nodelist.index(osmid_node)
   except ValueError:
     return -1
 
+
+def remove_point_on_linestring(row, i):
+    geom = row["geometry"]
+
+    if not isinstance(geom, LineString):
+        raise ValueError("Geometry is not a LineString")
+
+    coords = list(geom.coords)
+    coords.pop(i)
+    line = LineString(coords)
+
+    nodes = row["nodes"]
+    nodes.pop(i)
+
+    node_without_ext = nodes[1:i-1] if len(nodes) > 2 else []
+
+    row1 = row.copy()
+    row1["geometry"] = line
+    row1["nodes"] = nodes
+    row1["nodes_without_end"] = node_without_ext
+    row1["osmid"] = row1["osmid"]
+
+    return row1
 
 def split_linestring_at_point(row, i):
     #print("Cutting = ", row)
@@ -370,11 +335,6 @@ def split_linestring_at_point(row, i):
 
     node_without_ext1 = nodes1[1:-1] if len(nodes1)>2 else []
     node_without_ext2 = nodes2[1:-1] if len(nodes2)>2 else []
-
-    # Remplacer la ligne par les deux nouvelles
-    #new_gdf = gdf.drop(index)
-    #new_gdf = gdf.iloc[:0].append(new_gdf, ignore_index=True)  # reset type
-    #new_gdf = new_gdf.append(gdf.drop(index), ignore_index=True)
 
     # On recrée une ligne avec les mêmes attributs (sauf geometry)
 

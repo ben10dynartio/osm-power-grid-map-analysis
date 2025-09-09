@@ -40,7 +40,7 @@ def main(countrycode):
 
     print("  -- Downloading towers and transitions")
     overpass_response = query_node_tower_transition(countrycode)
-    gdf = overpass_response_to_gdf(overpass_response, tags=["power", "line_management"])
+    gdf = overpass_response_to_gdf(overpass_response, tags=["power", "line_management", "voltage"])
     gdf.to_file(DATA_PATH / countrycode / "osm_brut_power_tower_transition.gpkg")
 
 
@@ -93,7 +93,9 @@ def query_node_tower_transition(countrycode:str, querydate=None, verbose=False) 
     # Build query
     query = f"""[out:json][timeout:1000]{strdate};
                 area["ISO3166-1:alpha2"={countrycode}]->.searchArea;
-                (node["power"="tower"](area.searchArea);node["line_management"](area.searchArea);node["power"="connection"](area.searchArea););
+                way[power=line](area.searchArea);>->.nodeway;
+                way[power=cable](area.searchArea);>->.nodecable;
+                (node["power"="tower"](area.searchArea);node["line_management"](area.searchArea);node["power"="connection"](area.searchArea);.nodeway;.nodecable;);
                 out meta geom;"""
     if verbose: print(query)
     return overpass_query(query)

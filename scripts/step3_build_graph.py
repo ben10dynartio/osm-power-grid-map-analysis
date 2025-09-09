@@ -2,6 +2,7 @@ import json
 import networkx as nx
 import geopandas as gpd
 import pandas as pd
+import numpy as np
 from shapely.geometry import Point, LineString
 
 ## SETTINGS
@@ -9,14 +10,90 @@ import config
 COUNTRY_CODE = config.COUNTRY_CODE
 DATA_PATH = config.DATA_PATH
 
+INCLUDE_CIRCUIT = True
+
+
+def main():
+    txt_circuit = "_circuit" if INCLUDE_CIRCUIT else ""
+    gdf_nodes = gpd.read_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg").to_crs(epsg=3857)
+    gdf_lines = gpd.read_file(DATA_PATH / COUNTRY_CODE / f"pre_graph_power_lines{txt_circuit}.gpkg").to_crs(epsg=3857)
+    # gdf_lines = gdf_lines[gdf_lines["id"]<1355000000]
+    # gdf_nodes = gdf_nodes[(gdf_nodes["id"]<1355000000) & (gdf_nodes["type"]=="way")]
+
+    G = nx.MultiGraph()
+
+    gdf_nodes.apply(lambda node: G.add_node(node["osmid"], grid_role=node["grid_role"],
+                                            geometry=node["geometry"], status="undefined", connections="",
+                                            voltage=node["voltage"], power=node["power"]), axis=1)
+    gdf_lines.apply(lambda line: G.add_edge(line["osmid0"], line["osmid1"], status="undefined",
+                                            osmid=line["osmid"], international=line["international_osmid"],
+                                            voltage=line["voltage"], circuits=line["circuits"], cables=line["cables"],
+                                            wires=line["wires"], power=line["power"]), axis=1)
+
+    # Removing lambda node that connect exactly 2 edges
+    is_complete = False
+    while not is_complete:
+        is_complete = True
+        for node in G.nodes:
+            # print(node, G.nodes[node])
+            if (len(G.edges(node)) == 2) and (G.nodes[node]["grid_role"] == "lambda_node"):
+                # print("Merging on node:", node)
+                merge_two_lines_on_node(G, node)
+                is_complete = False
+                break
+
+    for node in G.nodes:
+        edges = G.edges(node, keys=True)
+        G.nodes[node]["connections"] = len(edges)
+        if len(edges) == 0:
+            G.nodes[node]["status"] = "disconnected"
+        elif len(edges) == 1:
+            if G.nodes[node]["grid_role"] == "lambda_node":
+                for edge in edges:
+                    G.edges[edge]["status"] = "disconnected"
+
+    for node in G.nodes:
+        G.nodes[node]["status"] = check_if_connected(G, node)
+
+    keys = ["grid_role", "status", "connections", "voltage", "power", "geometry"]
+    data_nodes = [{**{"osmid": n}, **{key: G.nodes[n][key] for key in keys}} for n in G.nodes]
+    gdf_nodes = gpd.GeoDataFrame(data_nodes, geometry="geometry", crs=3857)
+    gdf_nodes.to_file(DATA_PATH / COUNTRY_CODE / f"post_graph_power_nodes{txt_circuit}.gpkg")
+
+    data_edges = []
+    for n in G.edges:
+        row = {"status": G.edges[n]["status"],
+               "node0": n[0], "node1": n[1],
+               "geometry": LineString([G.nodes[n[0]]["geometry"], G.nodes[n[1]]["geometry"]])}
+        for key in ["osmid", "international", "power", "voltage", "circuits", "cables"]:
+            row[key] = G.edges[n][key] if key in G.edges[n] else None
+        data_edges.append(row)
+    if not data_edges:
+        data_edges = {"node0": [], "node1": [], "international": [], "osmid": [], "geometry": []}
+    gdf_edges = gpd.GeoDataFrame(data_edges, geometry="geometry", crs=3857)
+    gdf_edges["status"] = np.where(gdf_edges["status"] == "undefined",
+                                   "connected", gdf_edges["status"])
+    gdf_edges.to_file(DATA_PATH / COUNTRY_CODE / f"post_graph_power_lines{txt_circuit}.gpkg")
+
+
 def merge_two_lines_on_node(graph, node):
     edges = graph.edges(node)
+    stredges = str(edges)
     if len(edges) != 2:
         raise ValueError("Number of edges unexpected")
+    merged_keys = ["voltage", "cables", "circuits", "wires"]
+    merged_values = {}
+    for key in merged_keys:
+        temp = []
+        for e in edges:
+            temp.append(graph.edges[*e, 0][key])
+        if temp[0] != temp[1]:
+            print(f" * ERROR {key} difference on line node https://www.openstreetmap.org/{node} | {key} = {temp}, (first value kept)")
+        merged_values[key] = temp[0]
     new_nodes = []
     osmid_list = []
     for e in edges:
-        osmid_list.append(graph.edges[*e, 0]["osmid"])
+        osmid_list.append(graph.edges[*e, 0]["osmid"]) #[*e, 0]
         if e[0] != node:
             new_nodes.append(e[0])
         if e[1] != node:
@@ -27,12 +104,16 @@ def merge_two_lines_on_node(graph, node):
     graph.remove_node(node)
     #print("Adding edge : ", new_nodes)
     if len(new_nodes) != 2:
-        print("  /!\\ Possible Topology Error on node(s) - 2 nodes expected :", new_nodes, " / You might need to split the way")
+        print(" * ERROR Topology Error on node(s) - 2 nodes expected :", new_nodes, " / You might need to split the way")
     elif new_nodes[0] != new_nodes[1]:
-        #print("-- Possible Topology Error on node(s) - Same origin-destination :", new_nodes[0])
-        graph.add_edge(*new_nodes, osmid = ";".join(osmid_list), status="undefined")
+        graph.add_edge(*new_nodes, osmid = ";".join(osmid_list), status="undefined",
+                       voltage=merged_values["voltage"], circuits=merged_values["circuits"],
+                       wires=merged_values["wires"], cables=merged_values["circuits"])
     else:
-        graph.add_edge(*new_nodes, osmid = ";".join(osmid_list), status="undefined")
+        print("-- Possible Topology Error on node(s) - Same origin-destination :", new_nodes, " | edges = ", stredges, " | str = ", ";".join(osmid_list))
+        graph.add_edge(*new_nodes, osmid = ";".join(osmid_list), status="undefined",
+                       voltage=merged_values["voltage"], circuits=merged_values["circuits"],
+                       wires=merged_values["wires"], cables=merged_values["circuits"])
 
 def check_if_connected(graph, node):
     for e in graph.edges(node, keys=True):
@@ -40,91 +121,6 @@ def check_if_connected(graph, node):
             return graph.nodes[node]["status"]
     return "disconnected"
 
-gdf_nodes = gpd.read_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg").to_crs(epsg=3857)
-gdf_lines = gpd.read_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_lines.gpkg").to_crs(epsg=3857)
-#gdf_lines = gdf_lines[gdf_lines["id"]<1355000000]
-#gdf_nodes = gdf_nodes[(gdf_nodes["id"]<1355000000) & (gdf_nodes["type"]=="way")]
 
-G = nx.MultiGraph()
-
-gdf_nodes.apply(lambda node: G.add_node(node["osmid"], grid_role=node["grid_role"],
-                                        geometry=node["geometry"], status="undefined", connections=""), axis=1)
-gdf_lines.apply(lambda line: G.add_edge(line["osmid_node0"], line["osmid_node1"], status="undefined",
-                                        osmid=line["osmid"], international=line.get("osmid_" + line["international"], "")), axis=1)
-
-
-# Removing lambda node that connect exactly 2 edges
-is_complete = False
-while not is_complete:
-    is_complete = True
-    for node in G.nodes:
-        #print(node, G.nodes[node])
-        if (len(G.edges(node))==2) and (G.nodes[node]["grid_role"] == "lambda_node"):
-            #print("Merging on node:", node)
-            merge_two_lines_on_node(G, node)
-            is_complete = False
-            break
-
-for node in G.nodes:
-    edges = G.edges(node, keys=True)
-    G.nodes[node]["connections"] = len(edges)
-    if len(edges) == 0:
-        G.nodes[node]["status"] = "disconnected"
-    elif len(edges) == 1:
-        if G.nodes[node]["grid_role"] == "lambda_node":
-            for edge in edges:
-                G.edges[edge]["status"] = "disconnected"
-
-for node in G.nodes:
-    G.nodes[node]["status"] = check_if_connected(G, node)
-
-keys = ["grid_role", "status", "connections", "geometry"]
-data_nodes = [{**{"osmid":n}, **{key:G.nodes[n][key] for key in keys}} for n in G.nodes]
-gdf_nodes = gpd.GeoDataFrame(data_nodes, geometry="geometry", crs=3857)
-gdf_nodes.to_file(DATA_PATH / COUNTRY_CODE / "post_graph_power_nodes.gpkg")
-
-data_edges = [{"status":G.edges[n]["status"],
-               "node0":n[0], "node1":n[1],
-               "international":G.edges[n].get("international", ""),
-               "osmid":G.edges[n].get("osmid", ""),
-               "geometry":LineString([G.nodes[n[0]]["geometry"], G.nodes[n[1]]["geometry"]])} for n in G.edges]
-if not data_edges:
-    data_edges = {"data_edges":[], "node0":[], "node1":[], "international":[], "osmid":[], "geometry":[]}
-gdf_edges = gpd.GeoDataFrame(data_edges, geometry="geometry", crs=3857)
-gdf_edges.to_file(DATA_PATH / COUNTRY_CODE / "post_graph_power_lines.gpkg")
-
-
-## Graph analysis
-stats = {}
-stats["nb_international_connections"] =  len([n for n in G.nodes if G.nodes[n]["grid_role"]=="international"])
-stats["nb_substations"] = len(gdf_nodes[gdf_nodes["grid_role"]=="substation"])
-print("  -- Number of international connections =", stats["nb_international_connections"])
-print("  -- Number of substations =", stats["nb_substations"] )
-
-list_graph_subsets = list(nx.connected_components(G))
-graph_stats = []
-for l in list_graph_subsets:
-    nbsub = len([n for n in l if (G.nodes[n]["grid_role"] == "substation") and (G.nodes[n]["status"] != "disconnected")])
-    nbseg = len([e for e in G.subgraph(l).edges if G.edges[e]["status"] != "disconnected"])
-    if nbsub:
-        graph_stats.append({"nbsub":nbsub, "nbseg":nbseg})
-
-
-df_stat = pd.DataFrame(graph_stats)
-
-if len(df_stat)==0:
-    stats["grid_connectivity"] = 0
-else:
-    df_stat = df_stat.sort_values(["nbsub", "nbseg"], ascending=False)
-    df_stat_text = df_stat["nbsub"].astype(str) + "x" + df_stat["nbseg"].astype(str)
-    counts = df_stat_text.value_counts()
-
-    stats["grid_connectivity"] = " + ". join(
-        [f"{counts[subseg]}*({subseg})" if counts[subseg] != 1 else f"{subseg}"
-         for subseg in df_stat_text.unique().tolist()])
-#print(counts)
-#stats["grid_connectivity"] = " + ". join(f"{x['nbsub']}x{x['nbseg']}" for x in df_stat.to_dict(orient='records'))
-print("  -- Grid connectivity = ", stats["grid_connectivity"])
-
-with open(DATA_PATH / COUNTRY_CODE / "power_grid_stats.json", 'w', encoding='utf-8') as file:
-    json.dump(stats, file)
+if __name__=="__main__":
+    main()

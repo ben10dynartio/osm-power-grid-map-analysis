@@ -1,5 +1,6 @@
 import geopandas as gpd
 import pandas as pd
+import numpy as np
 from pathlib import Path
 import requests
 import osm2geojson
@@ -46,6 +47,22 @@ def main(countrycode):
         print("* ERROR WITH : ", row)
 
     df.to_csv(DATA_PATH / countrycode / "osm_brut_power_circuit_members.csv", index=False)
+
+    # Cleaning data
+    df["member_role"] = np.where(df["member_role"].isin(["substation", "endpoint"]),
+                                 "substation", df["member_role"])
+    df["member_role"] = np.where(df["member_role"].isin(["line", "section"]),
+                                 "section", df["member_role"])
+    df["power"] = np.where((df["type"]=="route") & (df["route"]=="power"),
+                                 "circuit", df["power"])
+    df["type"] = np.where((df["type"]=="route") & (df["route"]=="power"),
+                          "power", df["type"])
+    df["circuits"] = np.where(df["circuits"].isna(),
+                              1, df["circuits"]).astype(int)
+    df["cables"] = np.where(df["cables"].isna(),
+                              3, df["cables"]).astype(int)
+    del df["route"]
+    df.to_csv(DATA_PATH / countrycode / "osm_clean_power_circuit_members.csv", index=False)
 
 
 def query_circuit_rel(countrycode:str):
