@@ -7,13 +7,17 @@ from shapely.geometry import Point, LineString
 
 ## SETTINGS
 import config
+from scripts.step2_prepare_for_graph import LOG_LEVEL
+
 COUNTRY_CODE = config.COUNTRY_CODE
 DATA_PATH = config.DATA_PATH
 
-INCLUDE_CIRCUIT = True
 
 
-def main():
+LOG_LEVEL = "ERROR"
+
+
+def main(INCLUDE_CIRCUIT=True):
     txt_circuit = "_circuit" if INCLUDE_CIRCUIT else ""
     gdf_nodes = gpd.read_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg").to_crs(epsg=3857)
     gdf_lines = gpd.read_file(DATA_PATH / COUNTRY_CODE / f"pre_graph_power_lines{txt_circuit}.gpkg").to_crs(epsg=3857)
@@ -57,7 +61,10 @@ def main():
 
     keys = ["grid_role", "status", "connections", "voltage", "power", "geometry"]
     data_nodes = [{**{"osmid": n}, **{key: G.nodes[n][key] for key in keys}} for n in G.nodes]
-    gdf_nodes = gpd.GeoDataFrame(data_nodes, geometry="geometry", crs=3857)
+    if len(data_nodes) == 0:
+        gdf_nodes = gpd.GeoDataFrame({"geometry":[]}, geometry="geometry", crs=3857)
+    else:
+        gdf_nodes = gpd.GeoDataFrame(data_nodes, geometry="geometry", crs=3857)
     gdf_nodes.to_file(DATA_PATH / COUNTRY_CODE / f"post_graph_power_nodes{txt_circuit}.gpkg")
 
     data_edges = []
@@ -69,7 +76,7 @@ def main():
             row[key] = G.edges[n][key] if key in G.edges[n] else None
         data_edges.append(row)
     if not data_edges:
-        data_edges = {"node0": [], "node1": [], "international": [], "osmid": [], "geometry": []}
+        data_edges = {"node0": [], "node1": [], "international": [], "osmid": [], "status":[], "geometry": []}
     gdf_edges = gpd.GeoDataFrame(data_edges, geometry="geometry", crs=3857)
     gdf_edges["status"] = np.where(gdf_edges["status"] == "undefined",
                                    "connected", gdf_edges["status"])
@@ -88,7 +95,8 @@ def merge_two_lines_on_node(graph, node):
         for e in edges:
             temp.append(graph.edges[*e, 0][key])
         if temp[0] != temp[1]:
-            print(f" * ERROR {key} difference on line node https://www.openstreetmap.org/{node} | {key} = {temp}, (first value kept)")
+            if LOG_LEVEL in ["DEBUG"]:
+                print(f" * ERROR {key} difference on line node https://www.openstreetmap.org/{node} | {key} = {temp}, (first value kept)")
         merged_values[key] = temp[0]
     new_nodes = []
     osmid_list = []
@@ -104,13 +112,15 @@ def merge_two_lines_on_node(graph, node):
     graph.remove_node(node)
     #print("Adding edge : ", new_nodes)
     if len(new_nodes) != 2:
-        print(" * ERROR Topology Error on node(s) - 2 nodes expected :", new_nodes, " / You might need to split the way")
+        if LOG_LEVEL in ["DEBUG"]:
+            print(" * ERROR Topology Error on node(s) - 2 nodes expected :", new_nodes, " / You might need to split the way")
     elif new_nodes[0] != new_nodes[1]:
         graph.add_edge(*new_nodes, osmid = ";".join(osmid_list), status="undefined",
                        voltage=merged_values["voltage"], circuits=merged_values["circuits"],
                        wires=merged_values["wires"], cables=merged_values["circuits"])
     else:
-        print("-- Possible Topology Error on node(s) - Same origin-destination :", new_nodes, " | edges = ", stredges, " | str = ", ";".join(osmid_list))
+        if LOG_LEVEL in ["DEBUG"]:
+            print("-- Possible Topology Error on node(s) - Same origin-destination :", new_nodes, " | edges = ", stredges, " | str = ", ";".join(osmid_list))
         graph.add_edge(*new_nodes, osmid = ";".join(osmid_list), status="undefined",
                        voltage=merged_values["voltage"], circuits=merged_values["circuits"],
                        wires=merged_values["wires"], cables=merged_values["circuits"])
@@ -123,4 +133,5 @@ def check_if_connected(graph, node):
 
 
 if __name__=="__main__":
-    main()
+    main(True)
+    main(False)

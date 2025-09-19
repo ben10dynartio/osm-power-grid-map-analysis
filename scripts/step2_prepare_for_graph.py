@@ -4,11 +4,14 @@ import numpy as np
 from shapely.geometry import Point, LineString
 import ast
 
+from utils_gpd import to_empty_file
+
 ## SETTINGS
 import config
 COUNTRY_CODE = config.COUNTRY_CODE
 DATA_PATH = config.DATA_PATH
 BUFFER_DISTANCE = config.BUFFER_DISTANCE
+LOG_LEVEL = "ERROR"
 
 def main():
     statistics = {}
@@ -16,7 +19,12 @@ def main():
     # ------------ Prepare power tower transition
     gdf_all_tower = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_power_tower_transition.gpkg").to_crs(epsg=3857)
     statistics["nb_power_tower"] = len(gdf_all_tower[gdf_all_tower["power"] == "tower"])
-    print("  -- Info : Number of power towers =", statistics["nb_power_tower"])
+    print("  -- Info : Number of nodes / power towers=", len(gdf_all_tower), "/", statistics["nb_power_tower"])
+
+    if len(gdf_all_tower) == 0:
+        to_empty_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg")
+        to_empty_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_lines.gpkg")
+        return
 
     ## Keeping only transition node (line_management not null or power=connection)
     gdf_tower = gdf_all_tower[(gdf_all_tower["line_management"].notnull()) | (gdf_all_tower["power"] == "connection")]
@@ -35,6 +43,11 @@ def main():
 
     # ------------- Prepare power line dataset
     gdf_line = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_power_line.gpkg").to_crs(epsg=3857)
+    if len(gdf_line) == 0:
+        to_empty_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg")
+        to_empty_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_lines.gpkg")
+        return
+
     gdf_line["geom_type"] = gdf_line["geometry"].apply(lambda x: x.geom_type)
     gdf_line["nodes"] = gdf_line["nodes"].apply(lambda x: ast.literal_eval(x))
     gdf_line["nodes_end"] = gdf_line["nodes"].apply(lambda x: [x[0], x[-1]])
@@ -46,8 +59,8 @@ def main():
     print("  -- Info : Types of power line (only LineString should be there) =",
           gdf_line["geom_type"].unique().tolist())
     temp = gdf_line[gdf_line["geom_type"] != "LineString"]
-    if len(temp):
-        print("  /!\\ Error of type for following objects : ", list(temp["osmid"]))
+    if (len(temp) > 0) and (LOG_LEVEL in ["DEBUG"]):
+        print("  * ERROR of object type for following objects : ", list(temp["osmid"]))
     gdf_line = gdf_line[gdf_line["geom_type"] == "LineString"]
     # gdf_line = gdf_line[gdf_line["@numid"]<1_355_000_000] # keep only lines mapped before jan 2025
 
@@ -69,6 +82,7 @@ def main():
     # to process
 
     ## Check consistency of start and end points for power lines
+    print("  -- Info : Check consistency of start and end points for power lines")
     for row in gdf_line.to_dict(orient='records'):
         try:
             LineString([row["geometry"].coords[0], row["geometry"].coords[-1]])
@@ -77,22 +91,27 @@ def main():
             raise e
 
     # Checking if 'line_management' is not an end node
+    print("  -- Info : Checking if 'line_management' is not an end node")
     all_nodes_without_end_set = set(sum(gdf_line["nodes_without_end"], []))
     for nid in list(set_transition_nodes & all_nodes_without_end_set):
-        print(
-            f"* ERROR TOPOLOGY > This 'line_management' node might be an end node (except if power=connection, or line_management=cross): https://openstreetmap.org/node/{nid}")
+        if LOG_LEVEL in ["DEBUG"]:
+            print(
+                f"* ERROR TOPOLOGY > This 'line_management' node might be an end node (except if power=connection, or line_management=cross): https://openstreetmap.org/node/{nid}")
 
     # Checking branch connected line
+    print("  -- Checking branch connected line")
     all_nodes_end_set = set(sum(gdf_line["nodes_end"], []))
     gdf_line["error_branch_connected"] = gdf_line.apply(lambda line: list(set(line["nodes_without_end"]) & all_nodes_end_set), axis=1)
     temp = gdf_line[gdf_line["error_branch_connected"].apply(lambda x: x != [])]
     for row in temp.to_dict(orient='records'):
         for mynode in row["error_branch_connected"]:
-            print("* ERROR INTERMEDIATE CONNECTION > https://openstreetmap.org/" + str(row["osmid"]) +
-                  " is connected in the middle through the node https://openstreetmap.org/node/" + str(mynode))
+            if LOG_LEVEL in ["DEBUG"]:
+                print("* ERROR INTERMEDIATE CONNECTION > https://openstreetmap.org/" + str(row["osmid"]) +
+                      " is connected in the middle through the node https://openstreetmap.org/node/" + str(mynode))
     branch_nodes_error_set = set(sum(gdf_line["error_branch_connected"], []))
 
     # Cut line on node_transition
+    print("  -- Cut line on node_transition")
     for mynode in (set_transition_nodes | branch_nodes_error_set):
         #print("  -- Info : Cut on ", mynode)
         temp = gdf_line[gdf_line["nodes_without_end"].apply(lambda x: mynode in x)]
@@ -102,9 +121,14 @@ def main():
             #print("Need split on index=", key, " & row=", row)
             i = index_of_node(row["nodes"], mynode)
             #print(" > on index=", i)
-            splitrows = split_linestring_at_point(row, i)
-            listadding_row.extend(splitrows)
-            listremove_index.add(key)
+            try:
+                splitrows = split_linestring_at_point(row, i)
+                listadding_row.extend(splitrows)
+                listremove_index.add(key)
+            except Exception:
+                if LOG_LEVEL in ["DEBUG"]:
+                    print(f" * ERROR of split with power line https://openstreetmap.org/way/{row['id']}")
+
 
         # for key in listremove_index:
         gdf_line = gdf_line.drop(listremove_index)
@@ -114,6 +138,7 @@ def main():
         gdf_line = gdf_line.reset_index(drop=True)
 
     # Simplify geometry
+    print("  -- Simplify geometry")
     gdf_line["geometry"] = gdf_line.apply(lambda x: simplify_line(x), axis=1)
     for i in range(2):
         gdf_line[f"p{i}"] = gdf_line["geometry"].apply(lambda x: Point(x.coords[i]))
@@ -121,6 +146,7 @@ def main():
         gdf_line[f"transition{i}"] = gdf_line[f"node{i}"].apply(lambda x: x in set_transition_nodes)
 
     ### Prepare substation dataset
+    print("  -- Prepare substation dataset")
     gdf_sub = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_clean_power_substation.gpkg").to_crs(epsg=3857)
     gdf_sub["centroid"] = gdf_sub["geometry"].centroid
     gdf_sub["geometry"] = gdf_sub["geometry"].buffer(distance=BUFFER_DISTANCE)
@@ -129,9 +155,11 @@ def main():
     dic_substation_geopoint = {r["osmid"]: r["centroid"] for r in gdf_sub.to_dict(orient="records")}
 
     ## Spatial join ends of lines with substations
+    print("  -- Spatial join ends of lines with substations")
     gdf_country_shape = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_country_shape.gpkg").to_crs(epsg=3857)
 
     # Proximity analysis from end node line to substation
+    print("  -- Proximity analysis from end node line to substation")
     gdf_all_end_nodes = [gdf_line.copy(), gdf_line.copy()]
     for i in [1, 0]:
         gdf_all_end_nodes[i]["geometry"] = gdf_all_end_nodes[i][f"p{i}"]
@@ -150,6 +178,7 @@ def main():
         gdf_line[f"substation{i}"] = gdf_line[f"node{i}"].apply(lambda x: dic_node_to_sub.get(x))
 
     # Identify International end node
+    print("  -- Identify International end node")
     gdfprox_clip = gdf_all_end_nodes.clip(gdf_country_shape).copy()
     set_inside_country = set(gdfprox_clip[f"node"].tolist())
     gdf_spec_nodes_international = gdf_all_end_nodes[~(gdf_all_end_nodes[f"node"]).isin(set_inside_country)].copy()
@@ -180,7 +209,11 @@ def main():
             mylist_of_to_international_node.append(
                 {"grid_role": "to_international", "id": row[f"node{i}"], "osmid": f"node/{row[f"node{i}"]}", "geometry":row[f"p{i}"]}
             )
-    gdf_spec_nodes_to_international = gpd.GeoDataFrame(mylist_of_to_international_node, geometry="geometry", crs=3857)
+    if mylist_of_to_international_node:
+        gdf_spec_nodes_to_international = gpd.GeoDataFrame(mylist_of_to_international_node, geometry="geometry", crs=3857)
+    else:
+        gdf_spec_nodes_to_international = gpd.GeoDataFrame({"grid_role": [], "id":  [], "osmid":  [], "geometry": []}, geometry="geometry",
+                                                           crs=3857)
     gdf_spec_nodes_to_international = gdf_spec_nodes_to_international.merge(gdf_all_tower, how='left', left_on='id', right_on='id', suffixes=(None, "_merged"))
     lstcol = [col for col in gdf_spec_nodes_to_international.columns if col.endswith("_merged")]
     for col in lstcol:
@@ -197,6 +230,7 @@ def main():
     del gdf_spec_nodes_substation["centroid"]
 
     # Manage lambda node
+    print("  -- Manage lambda node")
     set_lambda_node = set()
     for i in [1, 0]:
         gdf_line[f"nodetype{i}"] = "lambda_node"

@@ -1,3 +1,5 @@
+from email.policy import default
+
 import geopandas as gpd
 import pandas as pd
 import numpy as np
@@ -16,7 +18,7 @@ DATA_PATH = config.DATA_PATH
 OSM_POWER_TAGS = config.OSM_POWER_TAGS
 
 
-LOG_LEVEL = "DEBUG"
+LOG_LEVEL = "ERROR"
 
 # :todo: if Substation relation include an other substation, then the bigger substation has to be removed. (Currently = no specific process)
 # cf : query_substation_in_substation
@@ -36,15 +38,20 @@ def main(countrycode):
             infobase["member_osmid"] = member["type"] + "/" + str(member["ref"])
             infobase["member_role"] = member["role"]
             lst_element.append(infobase)
-    df = pd.DataFrame(lst_element)
-    df["osmid"] = df["object_type"] + "/" + df["id"].astype(str)
+    if len(lst_element) > 0:
+        df = pd.DataFrame(lst_element)
+        df["osmid"] = df["object_type"] + "/" + df["id"].astype(str)
+    else:
+        df = pd.DataFrame({"osmid":[], "object_type":[], "id":[], "tags":[], "member_role":[], "type":[], "route":[], "circuits":[], "cables":[]})
+
     for keyop in OSM_POWER_TAGS:
         df[keyop] = df["tags"].apply(lambda x: x.get(keyop))
 
     print(" -- Check member tags")
     df_check = df[~df["member_role"].isin(["substation", "line", "endpoint", "section", "tap"])]
     for row in df_check.to_dict(orient='records'):
-        print("* ERROR WITH : ", row)
+        if LOG_LEVEL in ["DEBUG"]:
+            print("* ERROR WITH : ", row)
 
     df.to_csv(DATA_PATH / countrycode / "osm_brut_power_circuit_members.csv", index=False)
 
@@ -57,12 +64,24 @@ def main(countrycode):
                                  "circuit", df["power"])
     df["type"] = np.where((df["type"]=="route") & (df["route"]=="power"),
                           "power", df["type"])
-    df["circuits"] = np.where(df["circuits"].isna(),
-                              1, df["circuits"]).astype(int)
-    df["cables"] = np.where(df["cables"].isna(),
-                              3, df["cables"]).astype(int)
+    df["cables"] = df["cables"].apply(lambda x: convert_to_int(x, 3, "cables"))
+    df["circuits"] = df["circuits"].apply(lambda x: convert_to_int(x, 1, "circuits"))
+
     del df["route"]
     df.to_csv(DATA_PATH / countrycode / "osm_clean_power_circuit_members.csv", index=False)
+
+def convert_to_int(value, default, colname):
+    if not value:
+        return default
+    try:
+        return int(value)
+    except Exception as e:
+        if LOG_LEVEL in ["DEBUG"]:
+            print("  * ERROR with value of '{colname}' =", value)
+        try:
+            return sum([int(j.strip()) for j in value.split(";")])
+        except Exception:
+            return default
 
 
 def query_circuit_rel(countrycode:str):

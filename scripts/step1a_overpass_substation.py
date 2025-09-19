@@ -37,33 +37,38 @@ def main(countrycode):
     gdf_comp : GeoDataFrame = overpass_response_to_gdf(overpass_response, tags=OSM_POWER_TAGS)
     #gdf_comp.to_file(DATA_PATH / countrycode / "osm_brut_power_substation_rel_component.gpkg")
 
-    overpass_response = query_connection_way_in_rel(countrycode)
-    df = pd.DataFrame([{"component_way_id": int(d["tags"]["component_way_id"]),
-                        "component_rel_id": int(d["tags"]["component_rel_id"])}
-                       for d in overpass_response['elements']])
+    if len(gdf_comp)>0:
+        overpass_response = query_connection_way_in_rel(countrycode)
+        df = pd.DataFrame([{"component_way_id": int(d["tags"]["component_way_id"]),
+                            "component_rel_id": int(d["tags"]["component_rel_id"])}
+                           for d in overpass_response['elements']])
 
-    df_sub_rel = pd.DataFrame(gdf_sub[gdf_sub["object_type"]=="relation"].copy())
-    del df_sub_rel["geometry"]
-    gdf_comp = gdf_comp.merge(df, how='left', left_on='id', right_on='component_way_id').reset_index()
-    gdf_comp = gdf_comp.merge(df_sub_rel, how='left', left_on='component_rel_id', right_on='id', suffixes=("_way", None)).reset_index()
-    del gdf_comp["component_rel_id"]
-    del gdf_comp["component_way_id"]
-    gdf_comp.to_file(DATA_PATH / countrycode / "osm_brut_power_substation_rel_component.gpkg")
+        df_sub_rel = pd.DataFrame(gdf_sub[gdf_sub["object_type"]=="relation"].copy())
+        del df_sub_rel["geometry"]
+        gdf_comp = gdf_comp.merge(df, how='left', left_on='id', right_on='component_way_id').reset_index()
+        gdf_comp = gdf_comp.merge(df_sub_rel, how='left', left_on='component_rel_id', right_on='id', suffixes=("_way", None)).reset_index()
+        del gdf_comp["component_rel_id"]
+        del gdf_comp["component_way_id"]
+        gdf_comp.to_file(DATA_PATH / countrycode / "osm_brut_power_substation_rel_component.gpkg")
 
-    # Gathering multipart substation
-    tdf = gdf_comp.groupby("osmid", as_index=False).agg({'osmid_way':lambda x: list(x)})
-    tdf["related_osmid"] = tdf["osmid_way"].astype(str)
-    del tdf["osmid_way"]
+        # Gathering multipart substation
+        tdf = gdf_comp.groupby("osmid", as_index=False).agg({'osmid_way':lambda x: list(x)})
+        tdf["related_osmid"] = tdf["osmid_way"].astype(str)
+        del tdf["osmid_way"]
 
-    gdf_comp = gdf_comp.dissolve("osmid")
-    gdf_comp = gdf_comp.merge(tdf, left_on="osmid", right_on="osmid")
-    #gdf_comp.to_file(DATA_PATH / countrycode / "osm_clean_power_substation.gpkg")
+        gdf_comp = gdf_comp.dissolve("osmid")
+        gdf_comp = gdf_comp.merge(tdf, left_on="osmid", right_on="osmid")
+        #gdf_comp.to_file(DATA_PATH / countrycode / "osm_clean_power_substation.gpkg")
 
     gdf_sub_way = gdf_sub[gdf_sub["object_type"] != "relation"].copy()
-    final_sub_gdf = gpd.GeoDataFrame(pd.concat([gdf_comp, gdf_sub_way]), geometry="geometry", crs=4326)
+    if len(gdf_comp) > 0:
+        final_sub_gdf = gpd.GeoDataFrame(pd.concat([gdf_comp, gdf_sub_way]), geometry="geometry", crs=4326)
+    else:
+        final_sub_gdf = gdf_sub_way
     final_sub_gdf["geometry"] = final_sub_gdf["geometry"].apply(lambda x: shape_to_polygon(x))
-    del final_sub_gdf["level_0"]
-    del final_sub_gdf["index"]
+    for key in ["level_0", "index"]:
+        if key in final_sub_gdf.columns:
+            del final_sub_gdf[key]
     delcol = [col for col in final_sub_gdf.columns if col.endswith("_way")]
     for col in delcol:
         del final_sub_gdf[col]
