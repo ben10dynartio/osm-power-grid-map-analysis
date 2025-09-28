@@ -6,9 +6,7 @@ def overpass_query(query:str, log_level="error"):
     """Send an overpass query to the API """
     query = query[1:].strip() if query[0]=="\n" else query.strip()
     if log_level.lower() in ["debug", "info"]: print("----- SEND OVERPASS -----\n", query, "\n----- END OVERPASS -----")
-    #url = "http://overpass-api.de/api/interpreter"
-    #url = "https://overpass.private.coffee/api/interpreter"
-    url = "https://overpass.osm.jp/api/interpreter"
+    url = "http://overpass-api.de/api/interpreter"
     response = requests.get(url, params={'data': query})
 
     if response.status_code == 200:

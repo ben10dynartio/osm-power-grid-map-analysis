@@ -2,7 +2,7 @@ from pathlib import Path
 
 OSM_POWER_TAGS = ["name", "type", "route", "power", "voltage", "substation", "line", "circuits", "cables", "wires", "operator", "operator:wikidata", "location", "note", "wikidata"]
 
-COUNTRY_CODE = "CO"
+COUNTRY_CODE = "FR"
 DATA_PATH = Path(__file__).parent.parent / "data"
 BUFFER_DISTANCE = 1 # Ideally 0, but all line are not always well connected to
 

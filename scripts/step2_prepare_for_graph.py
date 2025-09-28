@@ -82,7 +82,7 @@ def main():
     # to process
 
     ## Check consistency of start and end points for power lines
-    print("  -- Info : Check consistency of start and end points for power lines")
+    print("  -- Check consistency of start and end points for power lines")
     for row in gdf_line.to_dict(orient='records'):
         try:
             LineString([row["geometry"].coords[0], row["geometry"].coords[-1]])
@@ -91,7 +91,7 @@ def main():
             raise e
 
     # Checking if 'line_management' is not an end node
-    print("  -- Info : Checking if 'line_management' is not an end node")
+    print("  -- Check if 'line_management' is not an end node")
     all_nodes_without_end_set = set(sum(gdf_line["nodes_without_end"], []))
     for nid in list(set_transition_nodes & all_nodes_without_end_set):
         if LOG_LEVEL in ["DEBUG"]:
@@ -99,7 +99,7 @@ def main():
                 f"* ERROR TOPOLOGY > This 'line_management' node might be an end node (except if power=connection, or line_management=cross): https://openstreetmap.org/node/{nid}")
 
     # Checking branch connected line
-    print("  -- Checking branch connected line")
+    print("  -- Check branch connected line")
     all_nodes_end_set = set(sum(gdf_line["nodes_end"], []))
     gdf_line["error_branch_connected"] = gdf_line.apply(lambda line: list(set(line["nodes_without_end"]) & all_nodes_end_set), axis=1)
     temp = gdf_line[gdf_line["error_branch_connected"].apply(lambda x: x != [])]
@@ -111,26 +111,22 @@ def main():
     branch_nodes_error_set = set(sum(gdf_line["error_branch_connected"], []))
 
     # Cut line on node_transition
-    print("  -- Cut line on node_transition")
-    for mynode in (set_transition_nodes | branch_nodes_error_set):
-        #print("  -- Info : Cut on ", mynode)
+    myset_of_cut_nodes = (set_transition_nodes | branch_nodes_error_set)
+    print(f"  -- Cut line on node_transition, {len(myset_of_cut_nodes)} items")
+    for mynode in myset_of_cut_nodes:
         temp = gdf_line[gdf_line["nodes_without_end"].apply(lambda x: mynode in x)]
-        listremove_index = set()
+        listremove_index = []
         listadding_row = []
         for key, row in temp.to_dict(orient='index').items():
-            #print("Need split on index=", key, " & row=", row)
             i = index_of_node(row["nodes"], mynode)
-            #print(" > on index=", i)
             try:
                 splitrows = split_linestring_at_point(row, i)
                 listadding_row.extend(splitrows)
-                listremove_index.add(key)
+                listremove_index.append(key)
             except Exception:
                 if LOG_LEVEL in ["DEBUG"]:
                     print(f" * ERROR of split with power line https://openstreetmap.org/way/{row['id']}")
 
-
-        # for key in listremove_index:
         gdf_line = gdf_line.drop(listremove_index)
         extend_df_line = pd.DataFrame(listadding_row)
         gdf_line = gpd.GeoDataFrame(pd.concat([pd.DataFrame(gdf_line), extend_df_line]), geometry="geometry").set_crs(
