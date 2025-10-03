@@ -7,14 +7,10 @@ from shapely.geometry import Point, LineString
 
 ## SETTINGS
 import config
-from scripts.step2_prepare_for_graph import LOG_LEVEL
 
 COUNTRY_CODE = config.COUNTRY_CODE
 DATA_PATH = config.DATA_PATH
-
-
-
-LOG_LEVEL = "ERROR"
+LOG_LEVEL = config.LOG_LEVEL
 
 
 def main(INCLUDE_CIRCUIT=True):

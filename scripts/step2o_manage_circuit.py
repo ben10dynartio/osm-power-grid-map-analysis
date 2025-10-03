@@ -3,7 +3,6 @@ import geopandas as gpd
 import numpy as np
 from shapely.geometry import Point, LineString
 
-from scripts.step2_prepare_for_graph import LOG_LEVEL
 from utils_gpd import to_empty_file
 
 ## SETTINGS
@@ -11,8 +10,7 @@ import config
 COUNTRY_CODE = config.COUNTRY_CODE
 DATA_PATH = config.DATA_PATH
 OSM_POWER_TAGS = config.OSM_POWER_TAGS
-
-LOG_LEVEL = "ERROR"
+LOG_LEVEL = config.LOG_LEVEL
 
 def main():
     gdf_nodes = gpd.read_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg")
