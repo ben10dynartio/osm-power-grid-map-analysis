@@ -4,7 +4,7 @@ OSM_POWER_TAGS = ["name", "type", "route", "power", "voltage", "substation", "li
 
 COUNTRY_CODE = "FR"
 DATA_PATH = Path(__file__).parent.parent / "data"
-BUFFER_DISTANCE = 1 # Ideally 0, but all line are not always well connected to
+BUFFER_DISTANCE = 50 # Ideally 0, but all lines are not always well connected to substations
 
 LIST_COUNTRY_CODES = ["AF", "AL", "DZ", "AD", "AO", "AG", "AR", "AM", "AU", "AT", "AZ", "BH", "BD", "BB", "BY", "BE",
                       "BZ", "BJ", "BT", "BO", "BA", "BW", "BR", "BN", "BG", "BF", "BI", "KH", "CM", "CA", "CV", "CF",

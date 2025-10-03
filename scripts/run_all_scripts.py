@@ -1,27 +1,7 @@
 import config
-import shutil
+from utils_exec import execute_all_steps
 from pathlib import Path
 
-from scripts.config import WORLD_COUNTRY_DICT
-
-# Cross-script config
-config.DATA_PATH = Path(__file__).parent.parent / "data"
-config.BUFFER_DISTANCE = 250
-
-# Config for this script
-COUNTRY_LIST = config.WORLD_COUNTRY_DICT #{'CO': 'Colombia'}
-COUNTRY_LIST = { 'DK': 'Kingdom of Denmark', 'EE': 'Estonia',  'FI': 'Finland',
-                'GE': 'Georgia', 'GR': 'Greece', 'HR': 'Croatia',
-               'HU': 'Hungary', 'IE': 'Ireland', 'IS': 'Iceland', 'IT': 'Italy', 'LI': 'Liechtenstein',
-               'LT': 'Lithuania', 'LU': 'Luxembourg', 'LV': 'Latvia', 'MC': 'Monaco', 'MD': 'Moldova',
-               'ME': 'Montenegro', 'MK': 'North Macedonia', 'MT': 'Malta', 'NL': 'Kingdom of the Netherlands',
-               'NO': 'Norway', 'PL': 'Poland', 'PT': 'Portugal', 'RO': 'Romania', 'RS': 'Serbia',
-               'SE': 'Sweden', 'SI': 'Slovenia', 'SK': 'Slovakia', 'SM': 'San Marino', 'UA': 'Ukraine',
-               'VA': 'Vatican City'}
-
-#{'DE': 'Germany', 'FR': 'France', 'GB': 'United Kingdom',  'RU': 'Russia', 'ES': 'Spain',} {'DK': 'Kingdom of Denmark', 'HR': 'Croatia', 'HU': 'Hungary', 'IE': 'Ireland', 'IS': 'Iceland', 'LV': 'Latvia', 'ME': 'Montenegro', 'NL': 'Kingdom of the Netherlands', 'NO': 'Norway'}
-# 'CN': "People's Republic of China", 'IN': 'India',
-# {'LK': 'Sri Lanka', 'OM': 'Oman', 'PH': 'Philippines', 'PK': 'Pakistan', 'PS': 'State of Palestine', 'SA': 'Saudi Arabia', 'TH': 'Thailand', 'TR': 'Turkey', 'TW': 'Taiwan', 'UZ': 'Uzbekistan', 'VN': 'Vietnam', 'YE': 'Yemen'}
 # Continent dict that can be used as list
 Africa = {'AO': 'Angola', 'BF': 'Burkina Faso', 'BI': 'Burundi', 'BJ': 'Benin', 'BW': 'Botswana', 'CD': 'Democratic Republic of the Congo', 'CF': 'Central African Republic', 'CG': 'Republic of the Congo', 'CI': 'Ivory Coast', 'CM': 'Cameroon', 'CV': 'Cape Verde', 'DJ': 'Djibouti', 'DZ': 'Algeria', 'EG': 'Egypt', 'ER': 'Eritrea', 'ET': 'Ethiopia', 'GA': 'Gabon', 'GH': 'Ghana', 'GM': 'The Gambia', 'GN': 'Guinea', 'GQ': 'Equatorial Guinea', 'GW': 'Guinea-Bissau', 'KE': 'Kenya', 'KM': 'Comoros', 'LR': 'Liberia', 'LS': 'Lesotho', 'LY': 'Libya', 'MA': 'Morocco', 'MG': 'Madagascar', 'ML': 'Mali', 'MR': 'Mauritania', 'MU': 'Mauritius', 'MW': 'Malawi', 'MZ': 'Mozambique', 'NA': 'Namibia', 'NE': 'Niger', 'NG': 'Nigeria', 'RW': 'Rwanda', 'SC': 'Seychelles', 'SD': 'Sudan', 'SL': 'Sierra Leone', 'SN': 'Senegal', 'SO': 'Somalia', 'SS': 'South Sudan', 'ST': 'São Tomé and Príncipe', 'SZ': 'Eswatini', 'TD': 'Chad', 'TG': 'Togo', 'TN': 'Tunisia', 'TZ': 'Tanzania', 'UG': 'Uganda', 'ZA': 'South Africa', 'ZM': 'Zambia', 'ZW': 'Zimbabwe'}
 SouthAmerica = {'AR': 'Argentina', 'BO': 'Bolivia', 'BR': 'Brazil', 'CL': 'Chile', 'CO': 'Colombia', 'EC': 'Ecuador', 'GY': 'Guyana', 'PA': 'Panama', 'PE': 'Peru', 'PY': 'Paraguay', 'SR': 'Suriname', 'UY': 'Uruguay', 'VE': 'Venezuela'}
@@ -35,42 +15,22 @@ Europe = {'AD': 'Andorra', 'AL': 'Albania', 'AT': 'Austria', 'BA': 'Bosnia and H
 Europe_light = {'AD': 'Andorra', 'AL': 'Albania', 'AT': 'Austria', 'BA': 'Bosnia and Herzegovina', 'BE': 'Belgium', 'BG': 'Bulgaria', 'BY': 'Belarus', 'CH': 'Switzerland', 'CY': 'Cyprus', 'CZ': 'Czech Republic', 'DK': 'Kingdom of Denmark', 'EE': 'Estonia', 'ES': 'Spain', 'FI': 'Finland', 'GE': 'Georgia', 'GR': 'Greece', 'HR': 'Croatia', 'HU': 'Hungary', 'IE': 'Ireland', 'IS': 'Iceland', 'IT': 'Italy', 'LI': 'Liechtenstein', 'LT': 'Lithuania', 'LU': 'Luxembourg', 'LV': 'Latvia', 'MC': 'Monaco', 'MD': 'Moldova', 'ME': 'Montenegro', 'MK': 'North Macedonia', 'MT': 'Malta', 'NL': 'Kingdom of the Netherlands', 'NO': 'Norway', 'PL': 'Poland', 'PT': 'Portugal', 'RO': 'Romania', 'RS': 'Serbia', 'SE': 'Sweden', 'SI': 'Slovenia', 'SK': 'Slovakia', 'SM': 'San Marino', 'UA': 'Ukraine', 'VA': 'Vatican City'}
 
 # No Brazil, China and India in light dict
+COUNTRY_LIST = config.WORLD_COUNTRY_DICT #{'CO': 'Colombia'}
 COUNTRY_LIST = config.CONTINENTAL_COUNTRY_DICT["Africa"]
-COUNTRY_LIST =  {'IN': 'India'}
-
-# set it to a two-digit country code to skip all countries until this one (the indicated code will be processed)
-# Useful we re-running the script if an error has been encountered, without modifying country list
-SKIP_LIST_UNTIL = None
+COUNTRY_LIST =  {'TZ': 'Tanzania'}
 
 # Processing -----------------------
 list_errors = {}
-flag_skip = (SKIP_LIST_UNTIL is not None) # Set to True to skip countries
 
 selfpathfolder = Path(__file__).parent
 
 for code, name in COUNTRY_LIST.items():
-    if flag_skip:
-        if SKIP_LIST_UNTIL == code:
-            flag_skip = False
-        else:
-            continue #Skip until country code
     print(f"> Starting execution for {name} ({code})")
     config.COUNTRY_CODE = code
 
     # Run scripts
     try:
-        print(">> Step1 - Download data (country shape, towers and transitions, lines)")
-        exec(open(selfpathfolder / "step1_download_data_overpass.py").read())
-        print(">> Step1a - Download data (substations)")
-        exec(open(selfpathfolder / "step1a_overpass_substation.py").read())
-        print(">> Step1b - Download data")
-        exec(open(selfpathfolder / "step1b_overpass_circuit.py").read())
-        print(">> Step2 - Prepare for graph (pre-graph)")
-        exec(open(selfpathfolder / "step2_prepare_for_graph.py").read())
-        print(">> Step2o - Integrate circuit in pre-graph.py")
-        exec(open(selfpathfolder / "step2o_manage_circuit.py").read())
-        print(">> Step3 - Build graph and analyse connectivity (post-graphe)")
-        exec(open(selfpathfolder / "step3_build_graph.py").read())
+        execute_all_steps()
     except Exception as e:
         print("SCRIPT ERROR", e)
         list_errors[code] = name
