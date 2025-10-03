@@ -26,11 +26,9 @@ selfpathfolder = Path(__file__).parent
 
 for code, name in COUNTRY_LIST.items():
     print(f"> Starting execution for {name} ({code})")
-    config.COUNTRY_CODE = code
-
     # Run scripts
     try:
-        execute_all_steps()
+        execute_all_steps(code)
     except Exception as e:
         print("SCRIPT ERROR", e)
         list_errors[code] = name

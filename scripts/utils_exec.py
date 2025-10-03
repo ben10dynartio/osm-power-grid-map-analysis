@@ -2,8 +2,10 @@ import config
 import runpy
 from pathlib import Path
 
-def execute_all_steps(download=True, graph=True):
+def execute_all_steps(country_code, download=True, graph=True):
     selfpathfolder = Path(__file__).parent
+    config.COUNTRY_CODE = country_code
+
     if download:
         print(">> Step1 - Download data (country shape, towers and transitions, lines)")
         runpy.run_path(selfpathfolder / "step1a_overpass_country_line_tower.py", run_name="__main__")
