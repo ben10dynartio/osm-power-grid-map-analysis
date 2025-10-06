@@ -1,13 +1,20 @@
 import requests
 import osm2geojson
 import geopandas as gpd
+import time
 
-def overpass_query(query:str, log_level="error"):
+def overpass_query(query:str, log_level="error", retry=3):
     """Send an overpass query to the API """
     query = query[1:].strip() if query[0]=="\n" else query.strip()
     if log_level.lower() in ["debug", "info"]: print("----- SEND OVERPASS -----\n", query, "\n----- END OVERPASS -----")
     url = "http://overpass-api.de/api/interpreter"
     response = requests.get(url, params={'data': query})
+
+    while (retry > 0) and (response.status_code != 200):
+        print("Error on overpass request, retry ...")
+        time.sleep(20)
+        response = requests.get(url, params={'data': query})
+        retry -= 1
 
     if response.status_code == 200:
         return response.json()
