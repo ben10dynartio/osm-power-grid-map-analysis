@@ -7,11 +7,13 @@ from shapely.geometry import Point, LineString
 
 ## SETTINGS
 import config
+from utils_exec import errors_to_file, add_error
 
 COUNTRY_CODE = config.COUNTRY_CODE
 DATA_PATH = config.DATA_PATH
 LOG_LEVEL = config.LOG_LEVEL
 
+errors = []
 
 def main(INCLUDE_CIRCUIT=True):
     txt_circuit = "_circuit" if INCLUDE_CIRCUIT else ""
@@ -78,6 +80,8 @@ def main(INCLUDE_CIRCUIT=True):
                                    "connected", gdf_edges["status"])
     gdf_edges.to_file(DATA_PATH / COUNTRY_CODE / f"post_graph_power_lines{txt_circuit}.gpkg")
 
+    errors_to_file(errors, COUNTRY_CODE, f"errors_step3_build_graph{txt_circuit}.json")
+
 
 def merge_two_lines_on_node(graph, node):
     edges = graph.edges(node)
@@ -91,8 +95,9 @@ def merge_two_lines_on_node(graph, node):
         for e in edges:
             temp.append(graph.edges[*e, 0][key])
         if temp[0] != temp[1]:
-            if LOG_LEVEL in ["DEBUG"]:
-                print(f" * ERROR {key} difference on line node https://www.openstreetmap.org/{node} | {key} = {temp}, (first value kept)")
+            add_error(errors, {"name": f"{key.upper()}DifferenceOnJunction",
+                               "description": f"{key} difference on line node https://www.openstreetmap.org/{node} | {key} = {temp}, (first value kept)",
+                               "osmid": node})
         merged_values[key] = temp[0]
     new_nodes = []
     osmid_list = []
@@ -108,18 +113,23 @@ def merge_two_lines_on_node(graph, node):
     graph.remove_node(node)
     #print("Adding edge : ", new_nodes)
     if len(new_nodes) != 2:
-        if LOG_LEVEL in ["DEBUG"]:
-            print(" * ERROR Topology Error on node(s) - 2 nodes expected :", new_nodes, " / You might need to split the way")
+        add_error(errors, {"name": f"IncorrectTopology",
+                           "description": f"Topology Problem on node(s) - 2 nodes expected :" + str(new_nodes) + " / You might need to split the way",
+                           })
+
     elif new_nodes[0] != new_nodes[1]:
         graph.add_edge(*new_nodes, osmid = ";".join(osmid_list), status="undefined",
                        voltage=merged_values["voltage"], circuits=merged_values["circuits"],
                        wires=merged_values["wires"], cables=merged_values["circuits"])
     else:
-        if LOG_LEVEL in ["DEBUG"]:
-            print("-- Possible Topology Error on node(s) - Same origin-destination :", new_nodes, " | edges = ", stredges, " | str = ", ";".join(osmid_list))
+        add_error(errors, {"name": f"SameOriginDestination",
+                           "description": f"Same origin-destination on graph build:{new_nodes} | edges = {stredges} | str = {";".join(osmid_list)}"
+                           })
         graph.add_edge(*new_nodes, osmid = ";".join(osmid_list), status="undefined",
                        voltage=merged_values["voltage"], circuits=merged_values["circuits"],
                        wires=merged_values["wires"], cables=merged_values["circuits"])
+
+
 
 def check_if_connected(graph, node):
     for e in graph.edges(node, keys=True):

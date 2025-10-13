@@ -1,4 +1,5 @@
 import config
+import json
 import runpy
 from pathlib import Path
 
@@ -21,3 +22,15 @@ def execute_all_steps(country_code, download=True, graph=True):
         runpy.run_path(selfpathfolder / "step2o_manage_circuit.py", run_name="__main__")
         print(">> Step3 - Build graph and analyse connectivity (post-graphe)")
         runpy.run_path(selfpathfolder / "step3_build_graph.py", run_name="__main__")
+
+
+def add_error(errorlist, errordict, log_level=config.LOG_LEVEL):
+    if log_level == "DEBUG":
+        print("  * ERROR :", errordict)
+    errorlist.append(errordict)
+
+def errors_to_file(data, country_code, filename):
+    Path(config.ERRORS_PATH).mkdir(exist_ok=True)
+    Path(config.ERRORS_PATH / country_code).mkdir(exist_ok=True)
+    with open(config.ERRORS_PATH / country_code / filename, "w", encoding="utf-8") as f:
+        json.dump(data, f)

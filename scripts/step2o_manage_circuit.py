@@ -4,6 +4,7 @@ import numpy as np
 from shapely.geometry import Point, LineString
 
 from utils_gpd import to_empty_file
+from utils_exec import errors_to_file, add_error
 
 ## SETTINGS
 import config
@@ -11,6 +12,8 @@ COUNTRY_CODE = config.COUNTRY_CODE
 DATA_PATH = config.DATA_PATH
 OSM_POWER_TAGS = config.OSM_POWER_TAGS
 LOG_LEVEL = config.LOG_LEVEL
+
+errors = []
 
 def main():
     gdf_nodes = gpd.read_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg")
@@ -26,18 +29,20 @@ def main():
 
     ## Check and validation of circuits and cables number
     temp_circuits_problem = gdf_lines[gdf_lines["circuits"].apply(lambda x: type(x) is not int)]
-    if LOG_LEVEL in ["DEBUG"]:
-        for row in temp_circuits_problem.to_dict(orient='records'):
-            print("  * ERROR Circuit number : ", row)
+    for row in temp_circuits_problem.to_dict(orient='records'):
+        add_error(errors, {"name":"CircuitsNumber",
+                           "description":f"Incorrect circuit number [{row['circuits']}] of type {type(row['circuits'])}",
+                           "osmid":row["osmid"]})
     gdf_lines["circuits"] = np.where(gdf_lines["circuits"].apply(lambda x: type(x) is not int),
                                      1, gdf_lines["circuits"])
     gdf_lines["circuits"] = np.where(gdf_lines["circuits"].isna(),
                                      1, gdf_lines["circuits"]).astype(int)
 
-    temp_cables_problem = gdf_lines[gdf_lines["circuits"].apply(lambda x: type(x) is not int)]
-    if LOG_LEVEL in ["DEBUG"]:
-        for row in temp_cables_problem.to_dict(orient='records'):
-            print("  * ERROR Cable number : ", row)
+    temp_cables_problem = gdf_lines[gdf_lines["cables"].apply(lambda x: type(x) is not int)]
+    for row in temp_cables_problem.to_dict(orient='records'):
+        add_error(errors, {"name": "CablesNumber",
+                           "description": f"Incorrect cables number [{row['cables']}] of type {type(row['cables'])}",
+                           "osmid": row["osmid"]})
     gdf_lines["cables"] = np.where(gdf_lines["cables"].apply(lambda x: type(x) is not int),
                                      3, gdf_lines["cables"])
     gdf_lines["cables"] = np.where(gdf_lines["cables"].isna(),
@@ -58,9 +63,10 @@ def main():
     for circuit in circuit_rel_ids:
         tdf = df_circ[df_circ["id"]==circuit]
         subs = tdf[tdf["member_role"]=="substation"]
-        if len(subs)==1:
-            if LOG_LEVEL in ["DEBUG"]:
-                print(" * ERROR : Incomplete circuit relation : ", circuit)
+        if len(subs)<=1:
+            add_error(errors, {"name": "IncompleteCircuitRelation",
+                               "description": f"Incorrect Circuit Relation",
+                               "id": circuit, "objecttype": "relation"})
         elif len(subs)==2:
             newline = subs.iloc[0].copy()
             for i in [0, 1]:
@@ -71,14 +77,16 @@ def main():
                 newline["geometry"] = LineString([nodes_geo_dict[newline[f"osmid0"]], nodes_geo_dict[newline[f"osmid1"]]])
             except KeyError:
                 keyerror = newline[f"osmid0"] if newline[f"osmid0"] not in nodes_geo_dict else newline[f"osmid1"]
-                if LOG_LEVEL in ["DEBUG"]:
-                    print(f" * ERROR with substation https://openstreetmap.org/{keyerror} (not found in substation list)")
+                add_error(errors, {"name": "NotFoundSubstationKey",
+                                   "description": f"Not found Substation Key in list",
+                                   "osmid":keyerror,})
                 continue
             all_new_lines.append(newline)
         else: # (3 or more substation)
-            if LOG_LEVEL in ["DEBUG"]:
-                print("Triple circuit relation : ", circuit)
-                raise ValueError("Script not configured yet to manage triple substation circuit relation")
+            add_error(errors, {"name": "TripleCircuitRelation",
+                               "description": f"Not an error, but a test case - look at triple substations circuits | topology = {tdf["topology"].unique().tolist()}",
+                               "osmid": f"relation/{circuit}"}) #, "details":str(tdf.columns)})
+            print("WARNING : Triple circuit relation : ", circuit, " | Script not configured yet to manage triple substation circuit relation")
 
     print("-------- Differentiate Power line with power circuit")
     if len(all_new_lines) > 0:
@@ -88,8 +96,9 @@ def main():
         for circuit_osmid in list_circuit:
             tdf = df_circ[(df_circ["osmid"]==circuit_osmid)&(df_circ["member_role"]=="section")]
             if len(tdf)==0:
-                if LOG_LEVEL in ["DEBUG"]:
-                    print(" * ERROR on circuit = ", circuit_osmid, "(no section)")
+                add_error(errors, {"name": "CircuitWithoutSection",
+                                   "description": f"Circuit without section",
+                                   "osmid": circuit_osmid, "objecttype": "relation"})
                 continue
             nb_circuits = int(tdf.iloc[0]["circuits"])
             nb_cables = int(tdf.iloc[0]["cables"])
@@ -103,7 +112,9 @@ def main():
         check_df = gdf_lines[(gdf_lines["circuits"]<0)|(gdf_lines["cables"]<0)]
         for row in check_df.to_dict(orient='records'):
             if LOG_LEVEL in ["DEBUG"]:
-                print(" * ERROR Negative number of circuit or cables =", row)
+                add_error(errors, {"name": "MoreCircuitRelationThanAttribute",
+                                   "description": f"Excessing number of circuits relation compared to circuits attribute",
+                                   "osmid": row["osmid"]})
 
         gdf_old_lines = gdf_lines[gdf_lines["circuits"]>0].copy()
 
@@ -112,7 +123,7 @@ def main():
         gdf_final_power_lines = gdf_lines
 
     gdf_final_power_lines.to_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_lines_circuit.gpkg")
-
+    errors_to_file(errors, COUNTRY_CODE, "errors_step2o_manage_circuit.json")
 
 if __name__ == '__main__':
     main()

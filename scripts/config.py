@@ -2,10 +2,12 @@ from pathlib import Path
 
 LOG_LEVEL = "ERROR"
 
-OSM_POWER_TAGS = ["name", "type", "route", "power", "voltage", "substation", "line", "circuits", "cables", "wires", "operator", "operator:wikidata", "location", "note", "wikidata"]
+OSM_POWER_TAGS = ["ref", "name", "type", "route", "power", "voltage", "substation", "line", "circuits", "cables", "wires", "operator", "operator:wikidata", "location", "note", "wikidata", "topology", "frequency"]
 
-COUNTRY_CODE = "FR"
+COUNTRY_CODE = "TZ"
 DATA_PATH = Path(__file__).parent.parent / "data"
+ERRORS_PATH = Path(__file__).parent.parent / "errors"
+
 BUFFER_DISTANCE = 50 # Ideally 0, but all lines are not always well connected to substations
 
 LIST_COUNTRY_CODES = ["AF", "AL", "DZ", "AD", "AO", "AG", "AR", "AM", "AU", "AT", "AZ", "BH", "BD", "BB", "BY", "BE",

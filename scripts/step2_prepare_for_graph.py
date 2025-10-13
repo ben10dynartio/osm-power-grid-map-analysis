@@ -5,13 +5,16 @@ from shapely.geometry import Point, LineString
 import ast
 
 from utils_gpd import to_empty_file
+from utils_exec import add_error, errors_to_file
 
 ## SETTINGS
 import config
 COUNTRY_CODE = config.COUNTRY_CODE
 DATA_PATH = config.DATA_PATH
 BUFFER_DISTANCE = config.BUFFER_DISTANCE
-LOG_LEVEL = "ERROR"
+LOG_LEVEL = config.LOG_LEVEL
+
+errors = []
 
 def main():
     statistics = {}
@@ -59,8 +62,10 @@ def main():
     print("  -- Info : Types of power line (only LineString should be there) =",
           gdf_line["geom_type"].unique().tolist())
     temp = gdf_line[gdf_line["geom_type"] != "LineString"]
-    if (len(temp) > 0) and (LOG_LEVEL in ["DEBUG"]):
-        print("  * ERROR of object type for following objects : ", list(temp["osmid"]))
+    for row in temp.to_dict(orient="records"):
+        add_error(errors, {"name":"IncorrectLineType",
+                           "description":"Incorrect Object Type for Power Line (LineString expected)",
+                           "details":str(type(row["geometry"])), "osmid":row["osmid"]})
     gdf_line = gdf_line[gdf_line["geom_type"] == "LineString"]
     # gdf_line = gdf_line[gdf_line["@numid"]<1_355_000_000] # keep only lines mapped before jan 2025
 
@@ -83,20 +88,20 @@ def main():
 
     ## Check consistency of start and end points for power lines
     print("  -- Check consistency of start and end points for power lines")
-    for row in gdf_line.to_dict(orient='records'):
-        try:
-            LineString([row["geometry"].coords[0], row["geometry"].coords[-1]])
-        except NotImplementedError as e:
-            print("* ERROR UNKNOWN > with item =", row)
-            raise e
+    gdf_line["check_consistency"] = gdf_line["geometry"].map(check_line_consistency)
+    for row in gdf_line[~gdf_line["check_consistency"]].to_dict(orient='records'):
+        add_error(errors, {"name":"InconsistentGeometry",
+                           "description":"Inconsistent Geometry (At least two point expected)",
+                           "details":row["geometry"], "osmid":row["osmid"]})
+    gdf_line = gdf_line[gdf_line["check_consistency"]]
 
     # Checking if 'line_management' is not an end node
     print("  -- Check if 'line_management' is not an end node")
     all_nodes_without_end_set = set(sum(gdf_line["nodes_without_end"], []))
     for nid in list(set_transition_nodes & all_nodes_without_end_set):
-        if LOG_LEVEL in ["DEBUG"]:
-            print(
-                f"* ERROR TOPOLOGY > This 'line_management' node might be an end node (except if power=connection, or line_management=cross): https://openstreetmap.org/node/{nid}")
+        add_error(errors, {"name":"LineManagementNotEndNode",
+                           "description":"TThis 'line_management' node might be an end node (except if power=connection, or line_management=cross)",
+                           "id":nid, "objecttype":"node"})
 
     # Checking branch connected line
     print("  -- Check branch connected line")
@@ -105,9 +110,9 @@ def main():
     temp = gdf_line[gdf_line["error_branch_connected"].apply(lambda x: x != [])]
     for row in temp.to_dict(orient='records'):
         for mynode in row["error_branch_connected"]:
-            if LOG_LEVEL in ["DEBUG"]:
-                print("* ERROR INTERMEDIATE CONNECTION > https://openstreetmap.org/" + str(row["osmid"]) +
-                      " is connected in the middle through the node https://openstreetmap.org/node/" + str(mynode))
+            add_error(errors, {"name":"ConnectionInBetweenEnds",
+                               "description": "Connection of a power line to (1) through the node (2)",
+                               "osmid1": row["osmid"], "objecttype2": "node", "id2":mynode})
     branch_nodes_error_set = set(sum(gdf_line["error_branch_connected"], []))
 
     # Cut line on node_transition
@@ -124,8 +129,9 @@ def main():
                 listadding_row.extend(splitrows)
                 listremove_index.append(key)
             except Exception:
-                if LOG_LEVEL in ["DEBUG"]:
-                    print(f" * ERROR of split with power line https://openstreetmap.org/way/{row['id']}")
+                add_error(errors, {"name": "SplittingLineError",
+                                   "description": f"Error when splitting line on node {i}",
+                                   "osmid": row["osmid"]})
 
         gdf_line = gdf_line.drop(listremove_index)
         extend_df_line = pd.DataFrame(listadding_row)
@@ -293,7 +299,9 @@ def main():
             try:
                 LineString([row["p0"], row["p1"]])
             except Exception:
-                print(" * ERROR LINESTRING-BUILD with", row)
+                add_error(errors, {"name": "LineStringBuild",
+                                   "description": "Error when building LineString",
+                                   "osmid": row["osmid"]})
         gdf_line["geometry"] = gdf_line.apply(lambda r: LineString([r["p0"], r["p1"]]), axis=1)
 
     gdf_graph_nodes = gpd.GeoDataFrame(df_graph_nodes, geometry="geometry", crs=3857)
@@ -308,13 +316,16 @@ def main():
         del gdf_line["p1"]
 
     gdf_line.to_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_lines.gpkg")
+    errors_to_file(errors, COUNTRY_CODE, "errors_step2_prepare_for_graph.json")
 
 
 def simplify_line(row):
     try:
         return LineString([row["geometry"].coords[0], row["geometry"].coords[-1]])
     except IndexError:
-        print(" * ERROR SIMPLIFYING > with row =", row)
+        add_error(errors, {"name": "SimplifyingLine",
+                           "description": "Error when simplifying LineString",
+                           "osmid": row["osmid"]})
 
 
 def index_of_node(osmid_nodelist, osmid_node):
@@ -323,6 +334,12 @@ def index_of_node(osmid_nodelist, osmid_node):
   except ValueError:
     return -1
 
+def check_line_consistency(geom):
+    try:
+        LineString([geom.coords[0], geom.coords[-1]])
+        return True
+    except Exception:
+        return False
 
 def remove_point_on_linestring(row, i):
     geom = row["geometry"]

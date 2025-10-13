@@ -9,6 +9,7 @@ import osm2geojson
 
 from utils_ovp import overpass_query, overpass_response_to_gdf
 from utils_shape import shape_to_polygon
+from utils_exec import add_error, errors_to_file
 
 
 ## SETTINGS
@@ -16,12 +17,12 @@ import config
 COUNTRY_CODE = config.COUNTRY_CODE
 DATA_PATH = config.DATA_PATH
 OSM_POWER_TAGS = config.OSM_POWER_TAGS
-
-
-LOG_LEVEL = "ERROR"
+LOG_LEVEL = config.LOG_LEVEL
 
 # :todo: if Substation relation include an other substation, then the bigger substation has to be removed. (Currently = no specific process)
 # cf : query_substation_in_substation
+
+errors = []
 
 def main(countrycode):
     print("  -- Downloading circuits")
@@ -50,8 +51,11 @@ def main(countrycode):
     print(" -- Check member tags")
     df_check = df[~df["member_role"].isin(["substation", "line", "endpoint", "section", "tap"])]
     for row in df_check.to_dict(orient='records'):
-        if LOG_LEVEL in ["DEBUG"]:
-            print("* ERROR WITH : ", row)
+        add_error(errors, {"name": f"MemberRoleInCircuit",
+                           "description": f"Problem of role '{row["member_role"]}' of (1) in circuit relation (2)",
+                           "osmid1":row["member_osmid"],
+                           "osmid2":row["osmid"]
+                           })
 
     df.to_csv(DATA_PATH / countrycode / "osm_brut_power_circuit_members.csv", index=False)
 
@@ -70,14 +74,17 @@ def main(countrycode):
     del df["route"]
     df.to_csv(DATA_PATH / countrycode / "osm_clean_power_circuit_members.csv", index=False)
 
+    errors_to_file(errors, COUNTRY_CODE, f"errors_step1c_overpass_circuit.json")
+
 def convert_to_int(value, default, colname):
     if not value:
         return default
     try:
         return int(value)
     except Exception as e:
-        if LOG_LEVEL in ["DEBUG"]:
-            print("  * ERROR with value of '{colname}' =", value)
+        add_error(errors, {"name": f"IncorrectAttribute",
+                           "description": f"Inccorect value of '{colname}' [{value}]",
+                           })
         try:
             return sum([int(j.strip()) for j in value.split(";")])
         except Exception:
