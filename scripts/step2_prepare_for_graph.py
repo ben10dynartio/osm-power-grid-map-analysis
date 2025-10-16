@@ -39,6 +39,8 @@ def main():
     # crossing management
     set_crossing_node = set(gdf_tower[gdf_tower["line_management"] == "cross"]["id"].tolist())
     gdf_tower = gdf_tower[gdf_tower["line_management"] != "cross"]
+    gdf_tower = gdf_tower[gdf_tower["line_management"] != "straight"]
+    gdf_tower = gdf_tower[gdf_tower["line_management"] != "transpose"]
 
     set_transition_nodes = set(gdf_tower["id"].unique().tolist())
     statistics["nb_transition_node"] = len(set_transition_nodes)
@@ -89,7 +91,8 @@ def main():
     ## Check consistency of start and end points for power lines
     print("  -- Check consistency of start and end points for power lines")
     gdf_line["check_consistency"] = gdf_line["geometry"].map(check_line_consistency)
-    for row in gdf_line[~gdf_line["check_consistency"]].to_dict(orient='records'):
+    tempdf = gdf_line[~gdf_line["check_consistency"]]
+    for row in tempdf.to_dict(orient='records'):
         add_error(errors, {"name":"InconsistentGeometry",
                            "description":"Inconsistent Geometry (At least two point expected)",
                            "details":row["geometry"], "osmid":row["osmid"]})
@@ -97,11 +100,13 @@ def main():
 
     # Checking if 'line_management' is not an end node
     print("  -- Check if 'line_management' is not an end node")
-    all_nodes_without_end_set = set(sum(gdf_line["nodes_without_end"], []))
-    for nid in list(set_transition_nodes & all_nodes_without_end_set):
-        add_error(errors, {"name":"LineManagementNotEndNode",
-                           "description":"TThis 'line_management' node might be an end node (except if power=connection, or line_management=cross)",
-                           "id":nid, "objecttype":"node"})
+    gdf_line["set_inbetween_transition_node"] = gdf_line["nodes_without_end"].apply(lambda x: set(x) & set_transition_nodes)
+    tempdf = gdf_line[gdf_line["set_inbetween_transition_node"].apply(lambda x: len(x)) > 0]
+    for row in tempdf.to_dict(orient='records'):
+        for nid in row["set_inbetween_transition_node"]:
+            add_error(errors, {"name": "LineManagementNotEndNode",
+                           "description": "This 'line_management' node (1) should probably be an end node for power line (2)",
+                           "osmid1": f"node/{nid}", "osmid2":row["osmid"]})
 
     # Checking branch connected line
     print("  -- Check branch connected line")
@@ -112,32 +117,30 @@ def main():
         for mynode in row["error_branch_connected"]:
             add_error(errors, {"name":"ConnectionInBetweenEnds",
                                "description": "Connection of a power line to (1) through the node (2)",
-                               "osmid1": row["osmid"], "objecttype2": "node", "id2":mynode})
+                               "osmid1": f"node/{row['osmid']}", "osmid2": f"node/{mynode}"})
     branch_nodes_error_set = set(sum(gdf_line["error_branch_connected"], []))
 
     # Cut line on node_transition
     myset_of_cut_nodes = (set_transition_nodes | branch_nodes_error_set)
     print(f"  -- Cut line on node_transition, {len(myset_of_cut_nodes)} items")
-    for mynode in myset_of_cut_nodes:
-        temp = gdf_line[gdf_line["nodes_without_end"].apply(lambda x: mynode in x)]
-        listremove_index = []
-        listadding_row = []
-        for key, row in temp.to_dict(orient='index').items():
-            i = index_of_node(row["nodes"], mynode)
-            try:
-                splitrows = split_linestring_at_point(row, i)
-                listadding_row.extend(splitrows)
-                listremove_index.append(key)
-            except Exception:
-                add_error(errors, {"name": "SplittingLineError",
-                                   "description": f"Error when splitting line on node {i}",
-                                   "osmid": row["osmid"]})
 
-        gdf_line = gdf_line.drop(listremove_index)
-        extend_df_line = pd.DataFrame(listadding_row)
-        gdf_line = gpd.GeoDataFrame(pd.concat([pd.DataFrame(gdf_line), extend_df_line]), geometry="geometry").set_crs(
-            epsg=3857)
-        gdf_line = gdf_line.reset_index(drop=True)
+    gdf_line["set_inbetween_cut_node_id"] = gdf_line["nodes_without_end"].apply(
+        lambda x: set(x) & myset_of_cut_nodes)
+    gdf_line["list_inbetween_cut_node_index"] = gdf_line.apply(
+        lambda r: [r["nodes"].index(n) for n in r["set_inbetween_cut_node_id"]], axis=1)
+    gdf_line["list_inbetween_cut_node_index"] = gdf_line["list_inbetween_cut_node_index"].apply(lambda x: sorted(x))
+
+    tempdf = gdf_line[gdf_line["list_inbetween_cut_node_index"].apply(lambda x: len(x))>0]
+
+    compilerows = []
+    for row in tempdf.to_dict(orient='records'):
+        compilerows.extend(split_linestring_at_points(row, row["list_inbetween_cut_node_index"]))
+    print(f" - Cutting {len(tempdf)} into {len(compilerows)} pieces")
+    gdf_line = gdf_line[gdf_line["list_inbetween_cut_node_index"].apply(lambda x: len(x)) == 0].copy()
+    extend_df_line = pd.DataFrame(compilerows)
+    gdf_line = gpd.GeoDataFrame(pd.concat([pd.DataFrame(gdf_line), extend_df_line]), geometry="geometry").set_crs(
+        epsg=3857)
+    gdf_line = gdf_line.reset_index(drop=True)
 
     # Simplify geometry
     print("  -- Simplify geometry")
@@ -397,6 +400,43 @@ def split_linestring_at_point(row, i):
     row2["osmid"] = row2["osmid"] + "*1"
 
     return [row1, row2]
+
+def split_linestring_at_points(row, indexes):
+    #print("Cutting = ", row)
+    geom = row["geometry"]
+
+    if not isinstance(geom, LineString):
+        raise ValueError("Geometry is not a LineString")
+
+    coords = list(geom.coords)
+
+    # Création des deux nouvelles lignes
+    lines = []
+    nodes = []
+    node_without_ext = []
+    start = 0
+    for j in indexes:
+        lines.append(LineString(coords[start:j + 1]))
+        nodes.append(row["nodes"][start:j + 1])
+        if len(nodes[-1]) < 2:
+            print("* ERROR -----------------> ", row)
+        node_without_ext.append(nodes[-1][1:-1] if len(nodes[-1])>2 else [])
+        start = j
+    lines.append(LineString(coords[start:]))
+    nodes.append(row["nodes"][start:])
+    node_without_ext.append(nodes[-1][1:-1] if len(nodes[-1]) > 2 else [])
+
+    allrows = []
+    for j, (myline, mynodes, mynodesinbetween) in enumerate(zip(lines, nodes, node_without_ext)):
+        myrow = row.copy()
+        myrow["geometry"] = myline
+        myrow["nodes"] = mynodes
+        myrow["nodes_without_end"] = mynodesinbetween
+        myrow["osmid"] = f"{myrow["osmid"]}*{j}"
+        allrows.append(myrow)
+
+    return allrows
+
 
 if __name__ == "__main__":
     main()
