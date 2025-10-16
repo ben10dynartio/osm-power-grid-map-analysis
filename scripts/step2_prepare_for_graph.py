@@ -140,7 +140,7 @@ def main():
     extend_df_line = pd.DataFrame(compilerows)
     gdf_line = gpd.GeoDataFrame(pd.concat([pd.DataFrame(gdf_line), extend_df_line]), geometry="geometry").set_crs(
         epsg=3857)
-    gdf_line = gdf_line.reset_index(drop=True)
+    gdf_line = gdf_line.reset_index(drop=True)app
 
     # Simplify geometry
     print("  -- Simplify geometry")

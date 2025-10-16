@@ -1,6 +1,6 @@
 from pathlib import Path
 
-LOG_LEVEL = "DEBUG"
+LOG_LEVEL = "ERROR"
 
 OSM_POWER_TAGS = ["ref", "name", "type", "route", "power", "voltage", "substation", "line", "circuits", "cables", "wires", "operator", "operator:wikidata", "location", "note", "wikidata", "topology", "frequency"]
 
