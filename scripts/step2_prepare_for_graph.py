@@ -67,7 +67,7 @@ def main():
     for row in temp.to_dict(orient="records"):
         add_error(errors, {"name":"IncorrectLineType",
                            "description":"Incorrect Object Type for Power Line (LineString expected)",
-                           "details":str(type(row["geometry"])), "osmid":row["osmid"]})
+                           "details":str(type(row["geometry"])), "osmid":row["osmid"], "level":3})
     gdf_line = gdf_line[gdf_line["geom_type"] == "LineString"]
     # gdf_line = gdf_line[gdf_line["@numid"]<1_355_000_000] # keep only lines mapped before jan 2025
 
@@ -95,11 +95,11 @@ def main():
     for row in tempdf.to_dict(orient='records'):
         add_error(errors, {"name":"InconsistentGeometry",
                            "description":"Inconsistent Geometry (At least two point expected)",
-                           "details":row["geometry"], "osmid":row["osmid"]})
+                           "details":row["geometry"], "osmid":row["osmid"], "level":3})
     gdf_line = gdf_line[gdf_line["check_consistency"]]
 
     # Identify self-looping lines
-    print("  --Identify self-looping lines")
+    print("  -- Identify self-looping lines")
     gdf_line["len_list_node"] = gdf_line["nodes"].map(len)
     gdf_line["len_set_node"] = gdf_line["nodes"].apply(lambda x: len(set(x)))
     tempdf = gdf_line[gdf_line["len_list_node"]!=gdf_line["len_set_node"]]
@@ -111,7 +111,7 @@ def main():
             pass
         add_error(errors, {"name": "SelfLoopingLine",
                            "description": "The line is looping to itself",
-                           "osmid1": row["osmid"]})
+                           "osmid1": row["osmid"], "level":1})
     gdf_line = gdf_line[gdf_line["len_list_node"] == gdf_line["len_set_node"]]
 
     # Checking if 'line_management' is not an end node
@@ -122,7 +122,7 @@ def main():
         for nid in row["set_inbetween_transition_node"]:
             add_error(errors, {"name": "LineManagementNotEndNode",
                            "description": "This 'line_management' node (1) should probably be an end node for power line (2)",
-                           "osmid1": f"node/{nid}", "osmid2":row["osmid"]})
+                           "osmid1": f"node/{nid}", "osmid2":row["osmid"], "level":1})
 
     # Checking branch connected line
     print("  -- Check branch connected line")
@@ -133,7 +133,7 @@ def main():
         for mynode in row["error_branch_connected"]:
             add_error(errors, {"name":"ConnectionInBetweenEnds",
                                "description": "Connection of a power line to (1) through the node (2)",
-                               "osmid1": f"node/{row['osmid']}", "osmid2": f"node/{mynode}"})
+                               "osmid1": f"node/{row['osmid']}", "osmid2": f"node/{mynode}", "level":1})
     branch_nodes_error_set = set(sum(gdf_line["error_branch_connected"], []))
 
     # Cut line on node_transition
@@ -151,7 +151,7 @@ def main():
     compilerows = []
     for row in tempdf.to_dict(orient='records'):
         compilerows.extend(split_linestring_at_points(row, row["list_inbetween_cut_node_index"]))
-    print(f" - Cutting {len(tempdf)} into {len(compilerows)} pieces")
+    print(f"  -- Cutting {len(tempdf)} into {len(compilerows)} pieces")
     gdf_line = gdf_line[gdf_line["list_inbetween_cut_node_index"].apply(lambda x: len(x)) == 0].copy()
     extend_df_line = pd.DataFrame(compilerows)
     gdf_line = gpd.GeoDataFrame(pd.concat([pd.DataFrame(gdf_line), extend_df_line]), geometry="geometry").set_crs(
@@ -320,7 +320,7 @@ def main():
             except Exception:
                 add_error(errors, {"name": "LineStringBuild",
                                    "description": "Error when building LineString",
-                                   "osmid": row["osmid"]})
+                                   "osmid": row["osmid"], "level":3})
         gdf_line["geometry"] = gdf_line.apply(lambda r: LineString([r["p0"], r["p1"]]), axis=1)
 
     gdf_graph_nodes = gpd.GeoDataFrame(df_graph_nodes, geometry="geometry", crs=3857)
