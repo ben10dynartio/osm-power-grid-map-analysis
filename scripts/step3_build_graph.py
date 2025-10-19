@@ -95,8 +95,8 @@ def merge_two_lines_on_node(graph, node):
         for e in edges:
             temp.append(graph.edges[*e, 0][key])
         if temp[0] != temp[1]:
-            add_error(errors, {"name": f"{key.upper()}DifferenceOnJunction",
-                               "description": f"{key} difference on line node https://www.openstreetmap.org/{node} | {key} = {temp}, (first value kept)",
+            add_error(errors, {"name": f"{key.capitalize()}DifferenceOnJunction",
+                               "description": f"{key} difference for the lines that are joining on node [0] ({key} values = {temp})",
                                "osmid": node})
         merged_values[key] = temp[0]
     new_nodes = []

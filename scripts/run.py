@@ -1,9 +1,9 @@
 """
 Use this script for running all steps for one given country
 for example, for Comlombia (code ISO2 = CO) :
-    python runanalysis.py CO
-    python runanalysis.py CO -d # download only data
-    python runanalysis.py CO -g # process only graph analysis
+    python run.py CO
+    python run.py CO -d # download only data
+    python run.py CO -g # process only graph analysis
 """
 
 import argparse

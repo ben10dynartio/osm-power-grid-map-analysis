@@ -98,6 +98,22 @@ def main():
                            "details":row["geometry"], "osmid":row["osmid"]})
     gdf_line = gdf_line[gdf_line["check_consistency"]]
 
+    # Identify self-looping lines
+    print("  --Identify self-looping lines")
+    gdf_line["len_list_node"] = gdf_line["nodes"].map(len)
+    gdf_line["len_set_node"] = gdf_line["nodes"].apply(lambda x: len(set(x)))
+    tempdf = gdf_line[gdf_line["len_list_node"]!=gdf_line["len_set_node"]]
+    for row in tempdf.to_dict(orient='records'):
+        if (row["nodes"][0] == row["nodes"][-1]) and (row["len_list_node"]==row["len_set_node"]+1):
+            # Case where looping from start to end
+            pass
+        else:
+            pass
+        add_error(errors, {"name": "SelfLoopingLine",
+                           "description": "The line is looping to itself",
+                           "osmid1": row["osmid"]})
+    gdf_line = gdf_line[gdf_line["len_list_node"] == gdf_line["len_set_node"]]
+
     # Checking if 'line_management' is not an end node
     print("  -- Check if 'line_management' is not an end node")
     gdf_line["set_inbetween_transition_node"] = gdf_line["nodes_without_end"].apply(lambda x: set(x) & set_transition_nodes)
@@ -415,16 +431,25 @@ def split_linestring_at_points(row, indexes):
     nodes = []
     node_without_ext = []
     start = 0
-    for j in indexes:
-        lines.append(LineString(coords[start:j + 1]))
-        nodes.append(row["nodes"][start:j + 1])
-        if len(nodes[-1]) < 2:
-            print("* ERROR -----------------> ", row)
-        node_without_ext.append(nodes[-1][1:-1] if len(nodes[-1])>2 else [])
-        start = j
-    lines.append(LineString(coords[start:]))
-    nodes.append(row["nodes"][start:])
-    node_without_ext.append(nodes[-1][1:-1] if len(nodes[-1]) > 2 else [])
+
+    try:
+        for j in indexes:
+            lines.append(LineString(coords[start:j + 1]))
+            nodes.append(row["nodes"][start:j + 1])
+            if len(nodes[-1]) < 2:
+                print("* ERROR -----------------> ", row)
+            node_without_ext.append(nodes[-1][1:-1] if len(nodes[-1])>2 else [])
+            start = j
+        lines.append(LineString(coords[start:]))
+        nodes.append(row["nodes"][start:])
+        node_without_ext.append(nodes[-1][1:-1] if len(nodes[-1]) > 2 else [])
+    except Exception as e:
+        if LOG_LEVEL == "DEBUG":
+            print("** ERROR when splitting row :")
+            import pprint
+            pprint.pp(row)
+            print("Split indexes =", indexes)
+            raise e
 
     allrows = []
     for j, (myline, mynodes, mynodesinbetween) in enumerate(zip(lines, nodes, node_without_ext)):
