@@ -35,7 +35,7 @@ def main():
                            "description":f"Incorrect circuit number [{row['circuits']}]",
                            "osmid":row["osmid"]})
     gdf_lines["circuits"] = np.where(gdf_lines["circuits_int"]==-1,
-                                     1, gdf_lines["circuits"])
+                                     1, gdf_lines["circuits_int"])
     del gdf_lines["circuits_int"]
 
     # --------- Manage and check "cables" tag as int --------------------
@@ -46,7 +46,7 @@ def main():
                            "description": f"Incorrect cables number [{row['cables']}]",
                            "osmid": row["osmid"].split("*")[0]})
     gdf_lines["cables"] = np.where(gdf_lines["cables_int"]==-1,
-                                     3, gdf_lines["cables"])
+                                     3, gdf_lines["cables_int"])
     del gdf_lines["cables_int"]
 
     # --------- Export --------------------

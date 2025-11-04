@@ -4,7 +4,7 @@ LOG_LEVEL = "DEBUG"
 
 OSM_POWER_TAGS = ["ref", "name", "type", "route", "power", "voltage", "substation", "line", "circuits", "cables", "wires", "operator", "operator:wikidata", "location", "note", "wikidata", "topology", "frequency"]
 
-COUNTRY_CODE = "BG"
+COUNTRY_CODE = "EG"
 DATA_PATH = Path(__file__).parent.parent / "data"
 ERRORS_PATH = Path(__file__).parent.parent / "errors"
 
