@@ -10,7 +10,7 @@ COUNTRY_LIST = {
 #"BJ":"Benin",
 #"CI":"Ivory Coast (CI)",
 #"CN":"People's Republic of China (CN)",
-"CO":"Colombia",
+#"CO":"Colombia",
 #"LK":"Sri Lanka",
 #"GE":"Georgia",
 #"KE":"Kenya",
@@ -24,6 +24,7 @@ COUNTRY_LIST = {
 #"UZ":"Uzbekistan",
 #"UG":"Uganda",
 #"VN":"Vietnam (VN)",
+"BG":"Bulgaria",
 }
 
 STYLE_REF_COUNTRY_CODE = "BO" # do not change

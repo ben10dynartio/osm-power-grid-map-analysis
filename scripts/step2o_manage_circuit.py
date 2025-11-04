@@ -27,27 +27,29 @@ def main():
 
     print(" --- Files opened, CRS =", gdf_nodes.crs, gdf_lines.crs)
 
-    ## Check and validation of circuits and cables number
-    temp_circuits_problem = gdf_lines[gdf_lines["circuits"].apply(lambda x: type(x) is not int)]
+    # --------- Manage and check "circuit" tag as int --------------------
+    gdf_lines["circuits_int"] = gdf_lines["circuits"].apply(lambda x: convert_int(x, default=1))
+    temp_circuits_problem = gdf_lines[gdf_lines["circuits"]==-1]
     for row in temp_circuits_problem.to_dict(orient='records'):
         add_error(errors, {"name":"CircuitsNumber",
-                           "description":f"Incorrect circuit number [{row['circuits']}] of type {type(row['circuits'])}",
+                           "description":f"Incorrect circuit number [{row['circuits']}]",
                            "osmid":row["osmid"]})
-    gdf_lines["circuits"] = np.where(gdf_lines["circuits"].apply(lambda x: type(x) is not int),
+    gdf_lines["circuits"] = np.where(gdf_lines["circuits_int"]==-1,
                                      1, gdf_lines["circuits"])
-    gdf_lines["circuits"] = np.where(gdf_lines["circuits"].isna(),
-                                     1, gdf_lines["circuits"]).astype(int)
+    del gdf_lines["circuits_int"]
 
-    temp_cables_problem = gdf_lines[gdf_lines["cables"].apply(lambda x: type(x) is not int)]
+    # --------- Manage and check "cables" tag as int --------------------
+    gdf_lines["cables_int"] = gdf_lines["cables"].apply(lambda x: convert_int(x, default=3))
+    temp_cables_problem = gdf_lines[gdf_lines["cables_int"]==-1]
     for row in temp_cables_problem.to_dict(orient='records'):
         add_error(errors, {"name": "CablesNumber",
-                           "description": f"Incorrect cables number [{row['cables']}] of type {type(row['cables'])}",
-                           "osmid": row["osmid"]})
-    gdf_lines["cables"] = np.where(gdf_lines["cables"].apply(lambda x: type(x) is not int),
+                           "description": f"Incorrect cables number [{row['cables']}]",
+                           "osmid": row["osmid"].split("*")[0]})
+    gdf_lines["cables"] = np.where(gdf_lines["cables_int"]==-1,
                                      3, gdf_lines["cables"])
-    gdf_lines["cables"] = np.where(gdf_lines["cables"].isna(),
-                                     3, gdf_lines["cables"]).astype(int)
+    del gdf_lines["cables_int"]
 
+    # --------- Export --------------------
     df_circ = pd.read_csv(DATA_PATH / COUNTRY_CODE / "osm_clean_power_circuit_members.csv")
 
     """print(gdf_nodes)
@@ -124,6 +126,17 @@ def main():
 
     gdf_final_power_lines.to_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_lines_circuit.gpkg")
     errors_to_file(errors, COUNTRY_CODE, "errors_step2o_manage_circuit.json")
+
+def convert_int(value, default=0, error=-1):
+    if type(value) is int:
+        return value
+    if value is None:
+        return default
+    if value == "":
+        return default
+    if value.isdigit():
+        return int(value)
+    return error
 
 if __name__ == '__main__':
     main()
