@@ -34,3 +34,4 @@ def errors_to_file(data, country_code, filename):
     Path(config.ERRORS_PATH / country_code).mkdir(exist_ok=True)
     with open(config.ERRORS_PATH / country_code / filename, "w", encoding="utf-8") as f:
         json.dump(data, f)
+

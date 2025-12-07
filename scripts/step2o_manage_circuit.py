@@ -27,7 +27,7 @@ def main():
 
     print(" --- Files opened, CRS =", gdf_nodes.crs, gdf_lines.crs)
 
-    # --------- Manage and check "circuit" tag as int --------------------
+    """# --------- Manage and check "circuit" tag as int --------------------
     gdf_lines["circuits_int"] = gdf_lines["circuits"].apply(lambda x: convert_int(x, default=1))
     temp_circuits_problem = gdf_lines[gdf_lines["circuits"]==-1]
     for row in temp_circuits_problem.to_dict(orient='records'):
@@ -47,7 +47,7 @@ def main():
                            "osmid": row["osmid"].split("*")[0]})
     gdf_lines["cables"] = np.where(gdf_lines["cables_int"]==-1,
                                      3, gdf_lines["cables_int"])
-    del gdf_lines["cables_int"]
+    del gdf_lines["cables_int"]"""
 
     # --------- Export --------------------
     df_circ = pd.read_csv(DATA_PATH / COUNTRY_CODE / "osm_clean_power_circuit_members.csv")

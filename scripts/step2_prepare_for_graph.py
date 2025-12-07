@@ -6,6 +6,7 @@ import ast
 
 from utils_gpd import to_empty_file
 from utils_exec import add_error, errors_to_file
+from utils_data import convert_int
 
 ## SETTINGS
 import config
@@ -70,6 +71,29 @@ def main():
                            "details":str(type(row["geometry"])), "osmid":row["osmid"], "level":3})
     gdf_line = gdf_line[gdf_line["geom_type"] == "LineString"]
     # gdf_line = gdf_line[gdf_line["@numid"]<1_355_000_000] # keep only lines mapped before jan 2025
+
+    # Giving default value to circuit and cables
+    # --------- Manage and check "circuit" tag as int --------------------
+    gdf_line["circuits_int"] = gdf_line["circuits"].apply(lambda x: convert_int(x, default=1))
+    temp_circuits_problem = gdf_line[gdf_line["circuits"] == -1]
+    for row in temp_circuits_problem.to_dict(orient='records'):
+        add_error(errors, {"name": "CircuitsNumber",
+                           "description": f"Incorrect circuit number [{row['circuits']}]",
+                           "osmid": row["osmid"]})
+    gdf_line["circuits"] = np.where(gdf_line["circuits_int"] == -1,
+                                     1, gdf_line["circuits_int"])
+    del gdf_line["circuits_int"]
+
+    # --------- Manage and check "cables" tag as int --------------------
+    gdf_line["cables_int"] = gdf_line["cables"].apply(lambda x: convert_int(x, default=3))
+    temp_cables_problem = gdf_line[gdf_line["cables_int"] == -1]
+    for row in temp_cables_problem.to_dict(orient='records'):
+        add_error(errors, {"name": "CablesNumber",
+                           "description": f"Incorrect cables number [{row['cables']}]",
+                           "osmid": row["osmid"].split("*")[0]})
+    gdf_line["cables"] = np.where(gdf_line["cables_int"] == -1,
+                                   3, gdf_line["cables_int"])
+    del gdf_line["cables_int"]
 
     ## Remove node corresponding to crossing point to avoid connectivity
     gdf_line["crossing"] = gdf_line["nodes_without_end"].apply(lambda x: len(set(x) & set_crossing_node))

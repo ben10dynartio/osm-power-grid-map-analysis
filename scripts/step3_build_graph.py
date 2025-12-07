@@ -32,15 +32,15 @@ def main(INCLUDE_CIRCUIT=True):
                                             voltage=line["voltage"], circuits=line["circuits"], cables=line["cables"],
                                             wires=line["wires"], power=line["power"]), axis=1)
 
+    # print("INIT VERIFYING NODE LIST: ", G.edges("node/9819615339"))
     # Removing lambda node that connect exactly 2 edges
     is_complete = False
     while not is_complete:
         is_complete = True
         for node in G.nodes:
-            # print(node, G.nodes[node])
             if (len(G.edges(node)) == 2) and (G.nodes[node]["grid_role"] == "lambda_node"):
-                # print("Merging on node:", node)
-                merge_two_lines_on_node(G, node)
+                #print("Merging on node:", node)
+                merge_two_lines_on_node(G, node, adding_error=not INCLUDE_CIRCUIT)
                 is_complete = False
                 break
 
@@ -83,7 +83,7 @@ def main(INCLUDE_CIRCUIT=True):
     errors_to_file(errors, COUNTRY_CODE, f"errors_step3_build_graph{txt_circuit}.json")
 
 
-def merge_two_lines_on_node(graph, node):
+def merge_two_lines_on_node(graph, node, adding_error=True):
     edges = graph.edges(node)
     stredges = str(edges)
     if len(edges) != 2:
@@ -92,12 +92,17 @@ def merge_two_lines_on_node(graph, node):
     merged_values = {}
     for key in merged_keys:
         temp = []
+        osmidt = []
         for e in edges:
             temp.append(graph.edges[*e, 0][key])
+            osmidt.append(graph.edges[*e, 0]["osmid"])
+            """if node == 'node/2686974841':
+                print(graph.edges[*e, 0].items())"""
         if temp[0] != temp[1]:
-            add_error(errors, {"name": f"{key.capitalize()}DifferenceOnJunction",
-                               "description": f"{key} difference for the lines that are joining on node [0] ({key} values = {temp})",
-                               "osmid": node})
+            if adding_error:
+                add_error(errors, {"name": f"{key.capitalize()}DifferenceOnJunction",
+                                   "description": f"{key.capitalize()} difference for the lines that are joining on node [0] ({key} values = {temp})",
+                                   "osmid": node, "osmid1":osmidt[0], "osmid2":osmidt[1]})
         merged_values[key] = temp[0]
     new_nodes = []
     osmid_list = []
@@ -113,21 +118,23 @@ def merge_two_lines_on_node(graph, node):
     graph.remove_node(node)
     #print("Adding edge : ", new_nodes)
     if len(new_nodes) != 2:
-        add_error(errors, {"name": f"IncorrectTopology",
-                           "description": f"Topology Problem on node(s) - 2 nodes expected :" + str(new_nodes) + " / You might need to split the way",
-                           })
+        if adding_error:
+            add_error(errors, {"name": f"IncorrectTopology",
+                               "description": f"Topology Problem on node(s) - 2 nodes expected :" + str(new_nodes) + " / You might need to split the way",
+                               })
 
     elif new_nodes[0] != new_nodes[1]:
         graph.add_edge(*new_nodes, osmid = ";".join(osmid_list), status="undefined",
                        voltage=merged_values["voltage"], circuits=merged_values["circuits"],
-                       wires=merged_values["wires"], cables=merged_values["circuits"])
+                       wires=merged_values["wires"], cables=merged_values["cables"])
     else:
-        add_error(errors, {"name": f"SameOriginDestination",
-                           "description": f"Same origin-destination on graph build:{new_nodes} | edges = {stredges} | str = {";".join(osmid_list)}"
-                           })
+        if adding_error:
+            add_error(errors, {"name": f"SameOriginDestination",
+                               "description": f"Same origin-destination on graph build:{new_nodes} | edges = {stredges} | str = {";".join(osmid_list)}"
+                               })
         graph.add_edge(*new_nodes, osmid = ";".join(osmid_list), status="undefined",
                        voltage=merged_values["voltage"], circuits=merged_values["circuits"],
-                       wires=merged_values["wires"], cables=merged_values["circuits"])
+                       wires=merged_values["wires"], cables=merged_values["cables"])
 
 
 
