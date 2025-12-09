@@ -24,7 +24,8 @@ COUNTRY_LIST = {
 #"UZ":"Uzbekistan",
 #"UG":"Uganda",
 #"VN":"Vietnam (VN)",
-"BG":"Bulgaria",
+#"BG":"Bulgaria",
+"AU":"Australia",
 }
 
 STYLE_REF_COUNTRY_CODE = "BO" # do not change
@@ -75,8 +76,21 @@ def move_layer(layer, group_name):
     myGroup.insertChildNode(0, myClone)
     parent.removeChildNode(myLayer)
 
-
 def duplicate_layer_style(from_layer, to_layer):
+    sm_from = from_layer.styleManager()
+    sm_to   = to_layer.styleManager()
+
+    # Copie complète du style actif
+    style_name = sm_from.currentStyle()
+    qml = sm_from.style(style_name)
+
+    sm_to.renameStyle(sm_to.currentStyle(), "temp")
+    sm_to.addStyle(style_name, qml)
+    sm_to.setCurrentStyle(style_name)
+
+    to_layer.triggerRepaint()
+    
+def duplicate_layer_style2(from_layer, to_layer):
     iface.setActiveLayer(from_layer)
     iface.actionCopyLayerStyle().trigger()
     iface.setActiveLayer(to_layer)

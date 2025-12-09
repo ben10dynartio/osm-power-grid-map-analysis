@@ -77,10 +77,18 @@ def move_layer(layer, group_name):
 
 
 def duplicate_layer_style(from_layer, to_layer):
-    iface.setActiveLayer(from_layer)
-    iface.actionCopyLayerStyle().trigger()
-    iface.setActiveLayer(to_layer)
-    iface.actionPasteLayerStyle().trigger()
+    sm_from = from_layer.styleManager()
+    sm_to   = to_layer.styleManager()
+
+    # Copie complète du style actif
+    style_name = sm_from.currentStyle()
+    qml = sm_from.style(style_name)
+
+    sm_to.renameStyle(sm_to.currentStyle(), "temp")
+    sm_to.addStyle(style_name, qml)
+    sm_to.setCurrentStyle(style_name)
+
+    to_layer.triggerRepaint()
 
 
 def create_country_group(country_code, country_name):
