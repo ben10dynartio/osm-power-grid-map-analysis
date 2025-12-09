@@ -6,8 +6,7 @@ from qgis.core import QgsApplication
 
 
 # Supply path to qgis install location
-
-QgsApplication.setPrefixPath("/path/to/qgis/installation", True)
+QgsApplication.setPrefixPath("/usr/lib/qgis/plugins", True)
 
 
 # Create a reference to the QgsApplication.  Setting the
