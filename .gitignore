@@ -1,6 +1,7 @@
 .gitignore
 .*
 *__pycache__*
+databox/*
 data/*
 errors/*
 export/*

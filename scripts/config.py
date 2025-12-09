@@ -5,8 +5,10 @@ LOG_LEVEL = "DEBUG"
 OSM_POWER_TAGS = ["ref", "name", "type", "route", "power", "voltage", "substation", "line", "circuits", "cables", "wires", "operator", "operator:wikidata", "location", "note", "wikidata", "topology", "frequency"]
 
 COUNTRY_CODE = "CO"
-DATA_PATH = Path(__file__).parent.parent / "data"
-ERRORS_PATH = Path(__file__).parent.parent / "errors"
+DATA_PATH = Path(__file__).parent.parent / "databox/shapes/"
+DATA_PATH.mkdir(exist_ok=True)
+ERRORS_PATH = Path(__file__).parent.parent / "databox/gridmap_errors/"
+ERRORS_PATH.mkdir(exist_ok=True)
 
 BUFFER_DISTANCE = 50 # Ideally 0, but all lines are not always well connected to substations
 
