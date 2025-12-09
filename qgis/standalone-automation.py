@@ -34,8 +34,8 @@ COUNTRY_LIST = {
 }
 
 STYLE_REF_COUNTRY_CODE = "BO"  # do not change
-DATA_FOLDER = Path(__file__).parent.parent / "data"
-EXPORT_FOLDER = Path(__file__).parent.parent / "export"
+DATA_FOLDER = Path(__file__).parent.parent / "databox/shapes"
+EXPORT_FOLDER = Path(__file__).parent.parent / "databox/export"
 CONFIG_SCRIPT_FILEPATH = Path(__file__).parent.parent / "scripts/config.toml"
 EXPORT_FILENAME_STMAP = "high-voltage-network.jpg"
 EXPORT_FILENAME_GRID = "grid-connectivity.jpg"
