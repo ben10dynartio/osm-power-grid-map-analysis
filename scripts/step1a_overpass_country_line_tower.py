@@ -10,6 +10,7 @@ DATA_PATH = config.DATA_PATH
 
 OSM_TAGS_WAY = ["name", "type", "route", "power", "voltage", "circuits", "cables", "wires", "operator", "operator:wikidata", "location", "note", "wikidata"]
 
+FILENAME_COUNTRYSHAPE = "osm_brut_country_shape.gpkg"
 
 def main(countrycode):
     Path(DATA_PATH / countrycode).mkdir(parents=True, exist_ok=True)

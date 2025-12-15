@@ -16,6 +16,7 @@ parser.add_argument("country", help="Country code iso a2")
 parser.add_argument("-d", "--download", action="store_true", help="Download only")
 parser.add_argument("-g", "--graph", action="store_true", help="Graph analysis only")
 parser.add_argument("-o", "--outpath", type=str, help="Output folder path")
+parser.add_argument("-s", "--source", type=str, default="overpass", help="Source (overpass or podoma)")
 args = parser.parse_args()
 
 d, g = args.download, args.graph
@@ -25,6 +26,8 @@ if (not d) & (not g):
 print(f"> Starting execution for {args.country}")
 if args.outpath:
     config.DATA_PATH = Path(args.outpath)
+config.SOURCE = args.source
+
 execute_all_steps(args.country, d, g)
 
 

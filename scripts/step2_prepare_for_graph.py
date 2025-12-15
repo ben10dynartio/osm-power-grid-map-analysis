@@ -17,11 +17,24 @@ LOG_LEVEL = config.LOG_LEVEL
 
 errors = []
 
+FILENAME_INPUT_COUNTRY_SHAPE = "osm_brut_country_shape.gpkg"
+if config.SOURCE == "overpass":
+    FILENAME_INPUT_POWER_NODES = "osm_brut_power_tower_transition.gpkg"
+    FILENAME_INPUT_POWER_LINES = "osm_brut_power_line.gpkg"
+    FILENAME_INPUT_POWER_SUBSTATIONS = "osm_clean_power_substation.gpkg"
+elif config.SOURCE == "podoma":
+    FILENAME_INPUT_POWER_NODES = "osm_pdm_power_nodes.gpkg"
+    FILENAME_INPUT_POWER_LINES = "osm_pdm_power_lines.gpkg"
+    FILENAME_INPUT_POWER_SUBSTATIONS = "osm_pdm_power_substations.gpkg"
+else:
+    raise ValueError(f"Unknown source : {config.SOURCE}")
+
+
 def main():
     statistics = {}
 
     # ------------ Prepare power tower transition
-    gdf_all_tower = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_power_tower_transition.gpkg").to_crs(epsg=3857)
+    gdf_all_tower = gpd.read_file(DATA_PATH / COUNTRY_CODE / FILENAME_INPUT_POWER_NODES).to_crs(epsg=3857)
     statistics["nb_power_tower"] = len(gdf_all_tower[gdf_all_tower["power"] == "tower"])
     print("  -- Info : Number of nodes / power towers=", len(gdf_all_tower), "/", statistics["nb_power_tower"])
 
@@ -48,7 +61,7 @@ def main():
     print("  -- Info : Number of transition power nodes =", statistics["nb_transition_node"])
 
     # ------------- Prepare power line dataset
-    gdf_line = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_power_line.gpkg").to_crs(epsg=3857)
+    gdf_line = gpd.read_file(DATA_PATH / COUNTRY_CODE / FILENAME_INPUT_POWER_LINES).to_crs(epsg=3857)
     if len(gdf_line) == 0:
         to_empty_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg")
         to_empty_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_lines.gpkg")
@@ -192,7 +205,7 @@ def main():
 
     ### Prepare substation dataset
     print("  -- Prepare substation dataset")
-    gdf_sub = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_clean_power_substation.gpkg").to_crs(epsg=3857)
+    gdf_sub = gpd.read_file(DATA_PATH / COUNTRY_CODE / FILENAME_INPUT_POWER_SUBSTATIONS).to_crs(epsg=3857)
     gdf_sub["centroid"] = gdf_sub["geometry"].centroid
     gdf_sub["geometry"] = gdf_sub["geometry"].buffer(distance=BUFFER_DISTANCE)
 
@@ -201,7 +214,7 @@ def main():
 
     ## Spatial join ends of lines with substations
     print("  -- Spatial join ends of lines with substations")
-    gdf_country_shape = gpd.read_file(DATA_PATH / COUNTRY_CODE / "osm_brut_country_shape.gpkg").to_crs(epsg=3857)
+    gdf_country_shape = gpd.read_file(DATA_PATH / COUNTRY_CODE / FILENAME_INPUT_COUNTRY_SHAPE).to_crs(epsg=3857)
 
     # Proximity analysis from end node line to substation
     print("  -- Proximity analysis from end node line to substation")

@@ -17,7 +17,7 @@ Europe_light = {'AD': 'Andorra', 'AL': 'Albania', 'AT': 'Austria', 'BA': 'Bosnia
 # No Brazil, China and India in light dict
 COUNTRY_LIST = config.WORLD_COUNTRY_DICT #{'CO': 'Colombia'}
 COUNTRY_LIST = config.CONTINENTAL_COUNTRY_DICT["Africa"]
-COUNTRY_LIST =  {'CO': 'Colombia'}
+COUNTRY_LIST =  {'CO': 'Colombia', 'NP':"Nepal"}
 
 # Processing -----------------------
 list_errors = {}

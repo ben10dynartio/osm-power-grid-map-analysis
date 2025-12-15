@@ -10,3 +10,7 @@ export-world/*
 !export/BO/
 !data/NP/
 !export/NP/
+!databox/shapes/BO/
+!databox/qgismap/BO/
+!databox/shapes/NP/
+!databox/qgismap/NP/
