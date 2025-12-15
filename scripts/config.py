@@ -7,9 +7,9 @@ OSM_POWER_TAGS = ["ref", "name", "type", "route", "power", "voltage", "substatio
 
 COUNTRY_CODE = "CO"
 DATA_PATH = Path(__file__).parent.parent / "databox/shapes/"
-DATA_PATH.mkdir(exist_ok=True)
+DATA_PATH.mkdir(exist_ok=True, parents=True)
 ERRORS_PATH = Path(__file__).parent.parent / "databox/gridmap_errors/"
-ERRORS_PATH.mkdir(exist_ok=True)
+ERRORS_PATH.mkdir(exist_ok=True, parents=True)
 
 BUFFER_DISTANCE = 50 # Ideally 0, but all lines are not always well connected to substations
 
