@@ -1,7 +1,9 @@
 .gitignore
 .*
 *__pycache__*
-databox/*
+databox/shapes/*
+databox/qgismap/*
+databox/gridmap_errors/*
 data/*
 errors/*
 export/*

@@ -66,7 +66,7 @@ Once the right layers are enable:
     * Once the script started, there is no way to stop it (Ctrl+C isn't working). Be patient until the end (or kill Qgis process), and do not use a too long country list.
     * the 3 python scripts previously presented must have been executed for the concerned countries (they are not called from QGIS).
 
-<img alt="Nepal high-voltage network" src="export/NP/high-voltage-network.jpg" width="35%"><img alt="Nepal progress map" src="export/NP/grid-connectivity.jpg" width="35%">
+<img alt="Nepal high-voltage network" src="databox/qgismap/NP/high-voltage-network.jpg" width="35%"><img alt="Nepal progress map" src="databox/qgismap/NP/grid-connectivity.jpg" width="35%">
 
 ## QGIS tips for beginners
 

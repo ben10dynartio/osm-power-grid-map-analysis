@@ -5,7 +5,7 @@ import time
 COUNTRY_LIST = {'BO' : "Bolivia", "NP":"Nepal"}
 COUNTRY_LIST = {
 #"BD":"Bangladesh",
-#"BO":"Bolivia",
+"BO":"Bolivia",
 #"BA":"Bosnia and Herzegovina",
 #"BJ":"Benin",
 #"CI":"Ivory Coast (CI)",
@@ -17,7 +17,7 @@ COUNTRY_LIST = {
 #"KH":"Cambodia",
 #"KZ":"Kazakhstan",
 #"NG":"Nigeria",
-#"NP":"Nepal",
+"NP":"Nepal",
 #"MN":"Mongolia",
 #"PK":"Pakistan",
 #"TM":"Turkmenistan",
@@ -25,12 +25,12 @@ COUNTRY_LIST = {
 #"UG":"Uganda",
 #"VN":"Vietnam (VN)",
 #"BG":"Bulgaria",
-"AU":"Australia",
+#"AU":"Australia",
 }
 
 STYLE_REF_COUNTRY_CODE = "BO" # do not change
-DATA_FOLDER = Path(__file__).parent.parent / "data"
-EXPORT_FOLDER = Path(__file__).parent.parent / "export"
+DATA_FOLDER = Path(__file__).parent.parent / "databox/shapes"
+EXPORT_FOLDER = Path(__file__).parent.parent / "databox/qgismap"
 CONFIG_SCRIPT_FILEPATH = Path(__file__).parent.parent / "scripts/config.toml"
 EXPORT_FILENAME_STMAP = "high-voltage-network.jpg" 
 EXPORT_FILENAME_GRID = "grid-connectivity.jpg"
