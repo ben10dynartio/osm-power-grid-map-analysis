@@ -83,6 +83,11 @@ def main():
                                    "description": f"Not found Substation Key in list",
                                    "osmid":keyerror,})
                 continue
+            except TypeError as e:
+                add_error(errors, {"name": "SkippedCircuitForUnknown",
+                                   "description": f"???? / row",
+                                   "osmid": keyerror, })
+                continue
             all_new_lines.append(newline)
         else: # (3 or more substation)
             add_error(errors, {"name": "TripleCircuitRelation",

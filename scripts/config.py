@@ -1,7 +1,7 @@
 from pathlib import Path
 
 LOG_LEVEL = "ERROR"
-SOURCE = "overpass" # or "podoma"
+SOURCE = "overpass" # either "podoma" or "overpass". Podoma works only if an instance is available.
 
 OSM_POWER_TAGS = ["ref", "name", "type", "route", "power", "voltage", "substation", "line", "circuits", "cables", "wires", "operator", "operator:wikidata", "location", "note", "wikidata", "topology", "frequency"]
 
