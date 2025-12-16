@@ -3,17 +3,20 @@ import json
 import runpy
 from pathlib import Path
 
-def execute_all_steps(country_code, download=True, graph=True):
+def execute_all_steps(country_code, download=True, graph=True, skipdownload=""):
     selfpathfolder = Path(__file__).parent
     config.COUNTRY_CODE = country_code
 
     if download:
-        print(">> Step1 - Download data (country shape, towers and transitions, lines)")
-        runpy.run_path(selfpathfolder / "step1a_overpass_country_line_tower.py", run_name="__main__")
-        print(">> Step1a - Download data (substations)")
-        runpy.run_path(selfpathfolder / "step1b_overpass_substation.py", run_name="__main__")
-        print(">> Step1b - Download data")
-        runpy.run_path(selfpathfolder / "step1c_overpass_circuit.py", run_name="__main__")
+        if 'a' not in skipdownload:
+            print(">> Step1a - Download data (country shape, towers and transitions, lines)")
+            runpy.run_path(selfpathfolder / "step1a_overpass_country_line_tower.py", run_name="__main__")
+        if 'b' not in skipdownload:
+            print(">> Step1b - Download data (substations)")
+            runpy.run_path(selfpathfolder / "step1b_overpass_substation.py", run_name="__main__")
+        if 'c' not in skipdownload:
+            print(">> Step1c - Download data")
+            runpy.run_path(selfpathfolder / "step1c_overpass_circuit.py", run_name="__main__")
 
     if graph:
         print(">> Step2 - Prepare for graph (pre-graph)")

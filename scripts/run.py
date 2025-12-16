@@ -14,6 +14,7 @@ from utils_exec import execute_all_steps
 parser = argparse.ArgumentParser()
 parser.add_argument("country", help="Country code iso a2")
 parser.add_argument("-d", "--download", action="store_true", help="Download only")
+parser.add_argument("-k", "--skipdownload", type=str, default="overpass", help="Skip overpass download step, eg.: ab")
 parser.add_argument("-g", "--graph", action="store_true", help="Graph analysis only")
 parser.add_argument("-o", "--outpath", type=str, help="Output folder path")
 parser.add_argument("-s", "--source", type=str, default="overpass", help="Source (overpass or podoma)")
@@ -28,6 +29,6 @@ if args.outpath:
     config.DATA_PATH = Path(args.outpath)
 config.SOURCE = args.source
 
-execute_all_steps(args.country, d, g)
+execute_all_steps(args.country, d, g, skipdownload=args.skipdownload)
 
 
