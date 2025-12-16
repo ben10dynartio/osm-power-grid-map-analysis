@@ -14,21 +14,6 @@ FILENAME_COUNTRYSHAPE = "osm_brut_country_shape.gpkg"
 
 def main(countrycode):
     Path(DATA_PATH / countrycode).mkdir(parents=True, exist_ok=True)
-
-    print("  -- Downloading country shape of", countrycode)
-    if countrycode != "PY":
-        # There is a osm2geojson.json2geojson error for Paraguay ... it need to be investigated
-        # Request shape manually instead for this country
-        overpass_response = query_country_shape(countrycode)
-        gdf = overpass_response_to_gdf(overpass_response, tags=["name", "name:en"])
-        gdf.to_file(DATA_PATH / countrycode / "osm_brut_country_shape.gpkg")
-
-    # Not necessary (and makes problems for some countries)
-    """print("-- Downloading country cities")
-    overpass_response = query_country_cities(countrycode)
-    gdf = overpass_response_to_gdf(overpass_response, tags=["name", "name:en", "capital", "place", "population", "wikidata"])
-    gdf.to_file(DATA_PATH + countrycode + "/osm_brut_country_cities.gpkg")"""
-
     print("  -- Downloading power lines")
     overpass_response = query_powerline(countrycode)
     gdf = overpass_response_to_gdf(overpass_response, tags=["power", "circuits", "cables", "voltage", "wires"])
@@ -43,27 +28,6 @@ def main(countrycode):
     overpass_response = query_node_tower_transition(countrycode)
     gdf = overpass_response_to_gdf(overpass_response, tags=["power", "line_management", "voltage"])
     gdf.to_file(DATA_PATH / countrycode / "osm_brut_power_tower_transition.gpkg")
-
-
-def query_country_shape(countrycode:str, querydate=None) -> str:
-    # Add date if it is precised
-    strdate = f"[date:\"{querydate}T00:00:00Z\"]" if querydate is not None else ""
-    # Build query
-    query = f"""[out:json][timeout:1000]{strdate};
-                rel["ISO3166-1:alpha2"="{countrycode}"];
-                out geom;"""
-    return overpass_query(query)
-
-
-def query_country_cities(countrycode:str, querydate=None) -> str:
-    # Add date if it is precised
-    strdate = f"[date:\"{querydate}T00:00:00Z\"]" if querydate is not None else ""
-    # Build query
-    query = f"""[out:json][timeout:1000]{strdate};
-                area["ISO3166-1:alpha2"={countrycode}]->.searchArea;
-                node["capital"~"^(1|2|3|4|5|6)$"](area.searchArea);
-                out meta geom;"""
-    return overpass_query(query)
 
 
 def query_powerline(countrycode:str, querydate=None) -> str:

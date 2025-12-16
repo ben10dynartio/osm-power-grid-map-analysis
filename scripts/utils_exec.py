@@ -10,13 +10,16 @@ def execute_all_steps(country_code, download=True, graph=True, skipdownload=""):
     if download:
         if 'a' not in skipdownload:
             print(">> Step1a - Download data (country shape, towers and transitions, lines)")
-            runpy.run_path(selfpathfolder / "step1a_overpass_country_line_tower.py", run_name="__main__")
+            runpy.run_path(selfpathfolder / "step1a_overpass_country.py", run_name="__main__")
         if 'b' not in skipdownload:
-            print(">> Step1b - Download data (substations)")
-            runpy.run_path(selfpathfolder / "step1b_overpass_substation.py", run_name="__main__")
+            print(">> Step1b - Download line and nodes")
+            runpy.run_path(selfpathfolder / "step1b_overpass_line_tower.py", run_name="__main__")
         if 'c' not in skipdownload:
-            print(">> Step1c - Download data")
-            runpy.run_path(selfpathfolder / "step1c_overpass_circuit.py", run_name="__main__")
+            print(">> Step1c - Download substations")
+            runpy.run_path(selfpathfolder / "step1c_overpass_substation.py", run_name="__main__")
+        if 'd' not in skipdownload:
+            print(">> Step1d - Download circuit")
+            runpy.run_path(selfpathfolder / "step1d_overpass_circuit.py", run_name="__main__")
 
     if graph:
         print(">> Step2 - Prepare for graph (pre-graph)")
