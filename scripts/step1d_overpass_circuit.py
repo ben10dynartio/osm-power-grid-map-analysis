@@ -7,9 +7,9 @@ from pathlib import Path
 import requests
 import osm2geojson
 
-from utils_ovp import overpass_query, overpass_response_to_gdf
-from utils_shape import shape_to_polygon
-from utils_exec import add_error, errors_to_file
+from utils.utils_ovp import overpass_query, overpass_response_to_gdf
+from utils.utils_shape import shape_to_polygon
+from utils.utils_exec import add_error, errors_to_file
 
 
 ## SETTINGS

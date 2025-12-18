@@ -3,8 +3,8 @@ import geopandas as gpd
 import numpy as np
 from shapely.geometry import Point, LineString
 
-from utils_gpd import to_empty_file
-from utils_exec import errors_to_file, add_error
+from utils.utils_gpd import to_empty_file
+from utils.utils_exec import errors_to_file, add_error
 
 ## SETTINGS
 import config

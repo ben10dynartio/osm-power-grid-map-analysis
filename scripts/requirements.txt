@@ -6,3 +6,4 @@ requests
 osm2geojson
 shapely
 openpyxl
+psycopg2-binary

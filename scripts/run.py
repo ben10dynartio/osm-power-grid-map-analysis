@@ -9,7 +9,7 @@ for example, for Comlombia (code ISO2 = CO) :
 import argparse
 import config
 from pathlib import Path
-from utils_exec import execute_all_steps
+from utils.utils_exec import execute_all_steps
 
 parser = argparse.ArgumentParser()
 parser.add_argument("country", help="Country code iso a2")

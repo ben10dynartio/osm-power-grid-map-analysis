@@ -2,7 +2,7 @@ import geopandas as gpd
 import pandas as pd
 from pathlib import Path
 
-from utils_ovp import overpass_query, overpass_response_to_gdf
+from utils.utils_ovp import overpass_query, overpass_response_to_gdf
 ## SETTINGS
 import config
 COUNTRY_CODE = config.COUNTRY_CODE

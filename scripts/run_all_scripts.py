@@ -1,5 +1,5 @@
 import config
-from utils_exec import execute_all_steps
+from utils.utils_exec import execute_all_steps
 from pathlib import Path
 
 # Continent dict that can be used as list

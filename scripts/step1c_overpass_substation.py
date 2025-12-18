@@ -5,8 +5,8 @@ import requests
 import osm2geojson
 from geopandas import GeoDataFrame
 
-from utils_ovp import overpass_query, overpass_response_to_gdf
-from utils_shape import shape_to_polygon
+from utils.utils_ovp import overpass_query, overpass_response_to_gdf
+from utils.utils_shape import shape_to_polygon
 
 
 ## SETTINGS

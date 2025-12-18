@@ -7,7 +7,7 @@ from shapely.geometry import Point, LineString
 
 ## SETTINGS
 import config
-from utils_exec import errors_to_file, add_error
+from utils.utils_exec import errors_to_file, add_error
 
 COUNTRY_CODE = config.COUNTRY_CODE
 DATA_PATH = config.DATA_PATH

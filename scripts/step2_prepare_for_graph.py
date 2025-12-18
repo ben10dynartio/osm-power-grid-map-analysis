@@ -4,9 +4,9 @@ import numpy as np
 from shapely.geometry import Point, LineString
 import ast
 
-from utils_gpd import to_empty_file
-from utils_exec import add_error, errors_to_file
-from utils_data import convert_int
+from utils.utils_gpd import to_empty_file
+from utils.utils_exec import add_error, errors_to_file
+from utils.utils_data import convert_int
 
 ## SETTINGS
 import config
@@ -188,7 +188,7 @@ def main():
     compilerows = []
     for row in tempdf.to_dict(orient='records'):
         compilerows.extend(split_linestring_at_points(row, row["list_inbetween_cut_node_index"]))
-    print(f"  -- Cutting {len(tempdf)} into {len(compilerows)} pieces")
+    print(f"  -- Cutting {len(tempdf)} lines into {len(compilerows)} pieces")
     gdf_line = gdf_line[gdf_line["list_inbetween_cut_node_index"].apply(lambda x: len(x)) == 0].copy()
     extend_df_line = pd.DataFrame(compilerows)
     gdf_line = gpd.GeoDataFrame(pd.concat([pd.DataFrame(gdf_line), extend_df_line]), geometry="geometry").set_crs(
