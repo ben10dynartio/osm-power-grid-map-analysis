@@ -16,6 +16,10 @@ LOG_LEVEL = config.LOG_LEVEL
 errors = []
 
 def main(INCLUDE_CIRCUIT=True):
+    if INCLUDE_CIRCUIT:
+        print("  - Anaysis with circuits")
+    else:
+        print("  - Analysis without circuits")
     txt_circuit = "_circuit" if INCLUDE_CIRCUIT else ""
     gdf_nodes = gpd.read_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg").to_crs(epsg=3857)
     gdf_lines = gpd.read_file(DATA_PATH / COUNTRY_CODE / f"pre_graph_power_lines{txt_circuit}.gpkg").to_crs(epsg=3857)
@@ -67,12 +71,17 @@ def main(INCLUDE_CIRCUIT=True):
 
     data_edges = []
     for n in G.edges:
-        row = {"status": G.edges[n]["status"],
-               "node0": n[0], "node1": n[1],
-               "geometry": LineString([G.nodes[n[0]]["geometry"], G.nodes[n[1]]["geometry"]])}
-        for key in ["osmid", "international", "power", "voltage", "circuits", "cables"]:
-            row[key] = G.edges[n][key] if key in G.edges[n] else None
-        data_edges.append(row)
+        try:
+            row = {"status": G.edges[n]["status"],
+                   "node0": n[0], "node1": n[1],
+                   "geometry": LineString([G.nodes[n[0]]["geometry"], G.nodes[n[1]]["geometry"]])}
+            for key in ["osmid", "international", "power", "voltage", "circuits", "cables"]:
+                row[key] = G.edges[n][key] if key in G.edges[n] else None
+            data_edges.append(row)
+        except Exception as e:
+            add_error(errors, {"name": f"UnknownErrorOnEdgeBuilding",
+                               "description": f"Got None object when Edge Building",
+                               "osmid": n[0], "osmid1": n[1]})
     if not data_edges:
         data_edges = {"node0": [], "node1": [], "international": [], "osmid": [], "status":[], "geometry": []}
     gdf_edges = gpd.GeoDataFrame(data_edges, geometry="geometry", crs=3857)
