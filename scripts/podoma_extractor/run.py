@@ -6,9 +6,9 @@ for example, for Colombia (code ISO2 = CO) :
 
 import sys
 from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent / "common"))
+sys.path.append(str(Path(__file__).parent.parent))
 
-import configapps
+import config
 
 import argparse
 from pathlib import Path
@@ -26,7 +26,7 @@ parser.add_argument("-d", "--date", type=str, help="Date of layer", default="CUR
 
 args = parser.parse_args()
 
-df = pd.read_csv(configapps.OUTPUT_WORLD_FOLDER_PATH / "wikidata_countries_info_brut.csv")
+df = pd.read_csv(config.DATA_PATH / "wikidata_countries_info_brut.csv")
 #codeiso2,country,countryLabel,wikipedia,area_km2,flag_image,osm_rel_id,continent,languages,locator_map,population,gdp_bd
 country_osm_rel_id = df[df["codeiso2"]==args.country].iloc[0]["osm_rel_id"]
 
