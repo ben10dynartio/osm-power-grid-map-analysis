@@ -1,11 +1,11 @@
 from pathlib import Path
 
 LOG_LEVEL = "ERROR"
-SOURCE = "podoma" # either "podoma" or "overpass". Podoma works only if an instance is available.
+SOURCE = "overpass" # either "podoma" or "overpass". Podoma works only if an instance is available.
 
 OSM_POWER_TAGS = ["ref", "name", "type", "route", "power", "voltage", "substation", "line", "circuits", "cables", "wires", "operator", "operator:wikidata", "location", "note", "wikidata", "topology", "frequency"]
 
-COUNTRY_CODE = "FR"
+COUNTRY_CODE = "EG"
 DATA_PATH = Path(__file__).parent.parent / "databox/shapes/"
 DATA_PATH.mkdir(exist_ok=True, parents=True)
 ERRORS_PATH = Path(__file__).parent.parent / "databox/gridmap_errors/"

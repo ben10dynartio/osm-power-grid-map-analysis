@@ -84,9 +84,9 @@ def main():
                                    "osmid":keyerror,})
                 continue
             except TypeError as e:
-                add_error(errors, {"name": "SkippedCircuitForUnknown",
+                add_error(errors, {"name": "SkippedCircuitForUnknownReason",
                                    "description": f"???? / row",
-                                   "osmid": keyerror, })
+                                   "osmid": row["member_osmid"], })
                 continue
             all_new_lines.append(newline)
         else: # (3 or more substation)

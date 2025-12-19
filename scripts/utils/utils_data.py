@@ -14,7 +14,11 @@ def convert_int(value, default=0, error=-1):
         return default
     if value.isdigit():
         return int(value)
-    return error
+    try:
+        intv = int(float(value))
+        return intv
+    except Exception:
+        return error
 
 def convert_dict(value):
     if value is None :
