@@ -32,10 +32,10 @@ country_osm_rel_id = df[df["codeiso2"]==args.country].iloc[0]["osm_rel_id"]
 
 if args.action == "layerbuild": # Quality and Grid Stats
     if args.obj == "ln":
-        subprocess.run(f"python {SCRIPT_PATH}/layerbuilder_linesxnodes.py -c {country_osm_rel_id} -d {args.date} -f shapes/{args.country}/",
+        subprocess.run(f"python {SCRIPT_PATH}/layerbuilder_linesxnodes.py -c {country_osm_rel_id} -d {args.date} -f {args.country}/",
                        shell=True)
     elif args.obj == "sub":
-        subprocess.run(f"python {SCRIPT_PATH}/layerbuilder_substations.py -c {country_osm_rel_id} -d {args.date} -f shapes/{args.country}/",
+        subprocess.run(f"python {SCRIPT_PATH}/layerbuilder_substations.py -c {country_osm_rel_id} -d {args.date} -f {args.country}/",
                        shell=True)
     else:
         raise ValueError(f"Unknown object type : {args.obj}")

@@ -5,7 +5,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 import config
 from utils.utils_data import convert_dict
 
-from pdmconf import connectpdm, OSM_POWER_TAGS, OUTPUT_FOLDER_NAME
+from pdmconf import connectpdm, OSM_POWER_TAGS
 
 import argparse
 import ast
@@ -19,7 +19,7 @@ FILENAME_SUBSTATIONS = "osm_pdm_power_substations.gpkg"
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--country", type=str, help="Country OSM code", default="80500")
 parser.add_argument("-d", "--date", type=str, help="Date of layer", default="CURRENT_TIMESTAMP")
-parser.add_argument("-f", "--folder", type=str, help="Folder name", default=OUTPUT_FOLDER_NAME)
+parser.add_argument("-f", "--folder", type=str, help="Folder name", default="xx") # Country code expected
 
 args = parser.parse_args()
 datebuild = args.date

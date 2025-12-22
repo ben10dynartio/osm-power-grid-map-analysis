@@ -21,7 +21,7 @@ FILENAME_NODES = "osm_pdm_power_nodes.gpkg"
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--country", type=str, help="Country OSM code", default="80500")
 parser.add_argument("-d", "--date", type=str, help="Date of layer", default="CURRENT_TIMESTAMP")
-parser.add_argument("-f", "--folder", type=str, help="Folder name", default=OUTPUT_FOLDER_NAME)
+parser.add_argument("-f", "--folder", type=str, help="Folder name", default="xx") # Country code expected
 
 args = parser.parse_args()
 datebuild = args.date
