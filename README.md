@@ -20,6 +20,9 @@ See result examples for Nepal below.
 * Set the desired BUFFER_DISTANCE (in meters) in `config.py`. This buffer is drawn auround substation to catch all power lines ending around. BUFFER_DISTANCE should be ideally 0, but in practise, we may need some tolerance.
 * Run the 3 step-scripts in the order. You can also run `run_all_scripts.py` to run all scripts at once and for several countries (configure the countries you want to process in the `COUNTRY_LIST` variable).
 
+### Using Podoma
+
+You can extract data from Podoma instead of Overpass. You will need a Podoma instance for it.
 
 ## Configure and export QGIS project
 

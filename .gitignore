@@ -4,4 +4,6 @@
 databox/*
 export-world/*
 databox
+localtest/
+localtest/*
 

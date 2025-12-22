@@ -47,8 +47,6 @@ output_path = config.DATA_PATH / output_folder_name
 output_path.mkdir(exist_ok=True, parents=True)
 
 gdf = gpd.GeoDataFrame.from_postgis(query, conn, geom_col='geometry')
-#gdf = gpd.read_file("/home/ben/DevProjects/temp/databox/pgsql/xxx.gpkg")
-
 
 gdf["geometry"] = gdf["geometry"].polygonize()
 gdf["id"] = gdf["osmid"].apply(lambda x: x.split("/")[1])
@@ -57,7 +55,8 @@ for tag in OSM_POWER_TAGS:
     gdf[tag] = gdf["tags"].apply(lambda x: x.pop(tag, None))
 
 # Export to a shapefile
-output_path_lines = output_path / FILENAME_SUBSTATIONS
-gdf.to_file(output_path_lines)
-print("Shapefile created:", output_path_lines, "\n")
+output_path_substations = output_path / FILENAME_SUBSTATIONS
+gdf.to_file(output_path_substations)
+print("Shapefile created:", output_path_substations, "\n")
+
 
