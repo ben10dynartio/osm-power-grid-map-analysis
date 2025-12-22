@@ -5,7 +5,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 import config
 from utils.utils_data import convert_dict
 
-from pdmconf import connectpdm, OSM_POWER_TAGS, OUTPUT_FOLDER_NAME
+from pdmconf import connectpdm, OSM_POWER_TAGS
 
 import argparse
 import ast
