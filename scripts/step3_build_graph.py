@@ -17,9 +17,9 @@ errors = []
 
 def main(INCLUDE_CIRCUIT=True):
     if INCLUDE_CIRCUIT:
-        print("  - Anaysis with circuits")
+        print("  -- Anaysis with circuits")
     else:
-        print("  - Analysis without circuits")
+        print("  -- Analysis without circuits")
     txt_circuit = "_circuit" if INCLUDE_CIRCUIT else ""
     gdf_nodes = gpd.read_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_nodes.gpkg").to_crs(epsg=3857)
     gdf_lines = gpd.read_file(DATA_PATH / COUNTRY_CODE / f"pre_graph_power_lines{txt_circuit}.gpkg").to_crs(epsg=3857)
