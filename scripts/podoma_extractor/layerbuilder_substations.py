@@ -21,10 +21,16 @@ parser.add_argument("-c", "--country", type=str, help="Country OSM code", defaul
 parser.add_argument("-d", "--date", type=str, help="Date of layer", default="CURRENT_TIMESTAMP")
 parser.add_argument("-f", "--folder", type=str, help="Folder name", default="xx") # Country code expected
 
+# ---------------------------------------------
+# Initialisation
+# ---------------------------------------------
 args = parser.parse_args()
 datebuild = args.date
 countryosmcode = args.country
 output_folder_name = args.folder
+
+output_path = config.DATA_PATH / output_folder_name
+output_path.mkdir(exist_ok=True, parents=True)
 
 # ---------------------------------------------
 # Connect to Podoma PostgreSQL/PostGIS database
@@ -39,14 +45,11 @@ WHERE fb.boundary = {countryosmcode}
 AND (({datebuild} BETWEEN fc.ts_start AND fc.ts_end) OR ({datebuild} >= fc.ts_start AND fc.ts_end is null));
 """
 
-# ---------------------------------------------
-# Load data into a GeoDataFrame
-# ---------------------------------------------
-
-output_path = config.DATA_PATH / output_folder_name
-output_path.mkdir(exist_ok=True, parents=True)
-
 gdf = gpd.GeoDataFrame.from_postgis(query, conn, geom_col='geometry')
+
+# ---------------------------------------------
+# Factoring and export GeoDataFrame
+# ---------------------------------------------
 
 gdf["id"] = gdf["osmid"].apply(lambda x: x.split("/")[1])
 gdf["tags"] = gdf["tags"].map(convert_dict)

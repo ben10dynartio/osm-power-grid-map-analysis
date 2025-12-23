@@ -26,7 +26,7 @@ parser.add_argument("-d", "--date", type=str, help="Date of layer", default="CUR
 
 args = parser.parse_args()
 
-df = pd.read_csv(config.DATA_PATH.parent / "00_WORLD/wikidata_countries_info_brut.csv")
+df = pd.read_csv(config.DATA_PATH.parent / "00_WORLD/wikidata_countries_info_brut.csv", na_filter=False)
 #codeiso2,country,countryLabel,wikipedia,area_km2,flag_image,osm_rel_id,continent,languages,locator_map,population,gdp_bd
 country_osm_rel_id = df[df["codeiso2"]==args.country].iloc[0]["osm_rel_id"]
 
