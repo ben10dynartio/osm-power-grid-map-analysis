@@ -16,10 +16,16 @@ COUNTRY_LIST = WORLD_COUNTRY_DICT
 dfs_lines = {}
 dfs_nodes = {}
 for countrycode in COUNTRY_LIST.keys():
-    dfs_lines[countrycode] = pd.DataFrame(gpd.read_file(DATA_PATH / f"{countrycode}/post_graph_power_lines.gpkg"))
-    dfs_lines[countrycode]["country"] = countrycode
-    dfs_nodes[countrycode] = pd.DataFrame(gpd.read_file(DATA_PATH / f"{countrycode}/post_graph_power_nodes.gpkg"))
-    dfs_nodes[countrycode]["country"] = countrycode
+    try:
+        dfs_lines[countrycode] = pd.DataFrame(gpd.read_file(DATA_PATH / f"{countrycode}/post_graph_power_lines.gpkg"))
+        dfs_lines[countrycode]["country"] = countrycode
+    except Exception:
+        pass
+    try:
+        dfs_nodes[countrycode] = pd.DataFrame(gpd.read_file(DATA_PATH / f"{countrycode}/post_graph_power_nodes.gpkg"))
+        dfs_nodes[countrycode]["country"] = countrycode
+    except Exception:
+        pass
 
 dflines = gpd.GeoDataFrame(pd.concat(list(dfs_lines.values())), geometry="geometry")
 dfnodes = gpd.GeoDataFrame(pd.concat(list(dfs_nodes.values())), geometry="geometry")
