@@ -23,10 +23,17 @@ parser.add_argument("-c", "--country", type=str, help="Country OSM code", defaul
 parser.add_argument("-d", "--date", type=str, help="Date of layer", default="CURRENT_TIMESTAMP")
 parser.add_argument("-f", "--folder", type=str, help="Folder name", default="xx") # Country code expected
 
+# ---------------------------------------------
+# Initialisation
+# ---------------------------------------------
+
 args = parser.parse_args()
 datebuild = args.date
 countryosmcode = args.country
 output_folder_name = args.folder
+
+output_path = config.DATA_PATH / output_folder_name
+output_path.mkdir(exist_ok=True, parents=True)
 
 # ---------------------------------------------
 # Connect to Podoma PostgreSQL/PostGIS database
@@ -63,19 +70,16 @@ WITH lines AS (
 SELECT * FROM joined;
 """
 
-# ---------------------------------------------
-# Load data into a GeoDataFrame
-# ---------------------------------------------
-
-output_path = config.DATA_PATH / output_folder_name
-output_path.mkdir(exist_ok=True, parents=True)
-
 gdf = gpd.GeoDataFrame.from_postgis(query, conn, geom_col='geometry')
 #gdf = gpd.read_file("/home/ben/DevProjects/temp/databox/pgsql/pdm_extract_points.gpkg")
 
+# ---------------------------------------------
+# Factoring and export GeoDataFrame
+# ---------------------------------------------
+
 output_path_linesxnodes = output_path / FILENAME_LINESxNODES
 gdf.to_file(output_path_linesxnodes)
-print("Shapefile created:", output_path_linesxnodes, "\n")
+print("Shapefile created:", output_path_linesxnodes, " | length =", len(gdf), "\n")
 
 # --------------------------------------
 # Line Management
@@ -105,7 +109,7 @@ for key in ["memberof", "ntags", "wtags", "nuserid", "wuserid", "pos", "ntimesta
 # Export to a shapefile
 output_path_lines = output_path / FILENAME_LINES
 gdf_lines.to_file(output_path_lines)
-print("Shapefile created:", output_path_lines, "\n")
+print("Shapefile created:", output_path_lines, " | length =", len(gdf_lines), "\n")
 
 # --------------------------------------
 # Points Management
@@ -114,19 +118,19 @@ def agg_group_to_points(g):
     first_row = g.iloc[0].copy()
     return first_row
 
-gdf_points : gpd.GeoDataFrame = gdf.sort_values(["memberof", "pos"])
-gdf_points = gdf_points.groupby("osmid").apply(agg_group_to_points).reset_index(drop=True)
-gdf_points = gdf_points.set_crs(gdf.crs)
-gdf_points["id"] = gdf_points["osmid"].apply(lambda x: int(x[5:]))
-gdf_points["tags"] = gdf_points["ntags"].map(convert_dict)
-gdf_points["userid"] = gdf_points["nuserid"]
+gdf_nodes : gpd.GeoDataFrame = gdf.sort_values(["memberof", "pos"])
+gdf_nodes = gdf_nodes.groupby("osmid").apply(agg_group_to_points).reset_index(drop=True)
+gdf_nodes = gdf_nodes.set_crs(gdf.crs)
+gdf_nodes["id"] = gdf_nodes["osmid"].apply(lambda x: int(x[5:]))
+gdf_nodes["tags"] = gdf_nodes["ntags"].map(convert_dict)
+gdf_nodes["userid"] = gdf_nodes["nuserid"]
 for tag in OSM_POWER_TAGS:
-    gdf_points[tag] = gdf_points["tags"].apply(lambda x: x.pop(tag, None))
+    gdf_nodes[tag] = gdf_nodes["tags"].apply(lambda x: x.pop(tag, None))
 for key in ["memberof", "ntags", "wtags", "nuserid", "wuserid", "ntimestamp", "wtimestamp"]:
-    del gdf_points[key]
+    del gdf_nodes[key]
 #print(gdf_points)
 
 # Export to a shapefile
-output_path_points = output_path / FILENAME_NODES
-gdf_points.to_file(output_path_points)
-print("Shapefile created:", output_path_points, "\n")
+output_path_nodes = output_path / FILENAME_NODES
+gdf_nodes.to_file(output_path_nodes)
+print("Shapefile created:", output_path_nodes, " | length =", len(gdf_nodes), "\n")

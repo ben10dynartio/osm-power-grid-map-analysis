@@ -59,6 +59,6 @@ for tag in OSM_POWER_TAGS:
 # Export to a shapefile
 output_path_substations = output_path / FILENAME_SUBSTATIONS
 gdf.to_file(output_path_substations)
-print("Shapefile created:", output_path_substations, "\n")
+print("Shapefile created:", output_path_substations, " | length =", len(gdf), "\n")
 
 
