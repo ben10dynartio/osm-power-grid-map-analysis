@@ -84,7 +84,6 @@ resultat["status"] = "international"
 composed_line = gpd.GeoDataFrame(pd.concat([dflines, resultat]), geometry="geometry", crs=3857)
 composed_line["status"] = np.where(composed_line["status"]=="undefined", "connected", composed_line["status"])
 del composed_line["international"]
-composed_line.to_file("../export-world/graph_lines_world.gpkg")
-
-dfnodes.to_file("../export-world/graph_nodes_world.gpkg")
+composed_line.to_file(DATA_PATH.parent / "OO_WORLD/graph_lines_world.gpkg")
+dfnodes.to_file(DATA_PATH.parent / "OO_WORLD/graph_nodes_world.gpkg")
 
