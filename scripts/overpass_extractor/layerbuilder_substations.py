@@ -1,3 +1,7 @@
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
 import geopandas as gpd
 import pandas as pd
 from pathlib import Path

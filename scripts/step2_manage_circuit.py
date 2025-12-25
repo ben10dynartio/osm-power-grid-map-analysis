@@ -25,7 +25,7 @@ def main():
         return
 
 
-    print(" --- Files opened, CRS =", gdf_nodes.crs, gdf_lines.crs)
+    print("  -- Files opened, CRS =", gdf_nodes.crs, gdf_lines.crs)
 
     """# --------- Manage and check "circuit" tag as int --------------------
     gdf_lines["circuits_int"] = gdf_lines["circuits"].apply(lambda x: convert_int(x, default=1))
@@ -60,7 +60,7 @@ def main():
 
     circuit_rel_ids = df_circ["id"].unique().tolist()
 
-    print("-------- Circuit analysis ")
+    print("  -- Circuit analysis ")
     all_new_lines = []
     for circuit in circuit_rel_ids:
         tdf = df_circ[df_circ["id"]==circuit]
@@ -95,7 +95,7 @@ def main():
                                "osmid": f"relation/{circuit}"}) #, "details":str(tdf.columns)})
             print("WARNING : Triple circuit relation : ", circuit, " | Script not configured yet to manage triple substation circuit relation")
 
-    print("-------- Differentiate Power line with power circuit")
+    print("  -- Differentiate Power line with power circuit")
     if len(all_new_lines) > 0:
         gdf_new_lines = gpd.GeoDataFrame(all_new_lines, geometry="geometry")
         list_circuit = gdf_new_lines["osmid"].unique().tolist()
