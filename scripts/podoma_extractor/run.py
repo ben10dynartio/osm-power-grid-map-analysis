@@ -37,5 +37,17 @@ if args.action == "layerbuild": # Quality and Grid Stats
     elif args.obj == "sub":
         subprocess.run(f"python {SCRIPT_PATH}/layerbuilder_substations.py -c {country_osm_rel_id} -d {args.date} -f {args.country}/",
                        shell=True)
+    elif args.obj == "cir":
+        subprocess.run(f"python {SCRIPT_PATH}/layerbuilder_circuits.py -c {country_osm_rel_id} -d {args.date} -f {args.country}/",
+                       shell=True)
+    elif args.obj == "all":
+        subprocess.run(
+            f"python {SCRIPT_PATH}/layerbuilder_linesxnodes.py -c {country_osm_rel_id} -d {args.date} -f {args.country}/",
+            shell=True)
+        subprocess.run(
+            f"python {SCRIPT_PATH}/layerbuilder_substations.py -c {country_osm_rel_id} -d {args.date} -f {args.country}/",
+            shell=True)
+        subprocess.run(f"python {SCRIPT_PATH}/layerbuilder_circuits.py -c {country_osm_rel_id} -d {args.date} -f {args.country}/",
+                       shell=True)
     else:
         raise ValueError(f"Unknown object type : {args.obj}")
