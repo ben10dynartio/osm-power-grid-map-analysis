@@ -93,7 +93,7 @@ def main():
     for row in temp_circuits_problem.to_dict(orient='records'):
         add_error(errors, {"name": "CircuitsNumber",
                            "description": f"Incorrect circuit number [{row['circuits']}]",
-                           "osmid": row["osmid"]})
+                           "osmid": row["osmid"].split("*")[0]})
     gdf_line["circuits"] = np.where(gdf_line["circuits_int"] == -1,
                                      1, gdf_line["circuits_int"])
     del gdf_line["circuits_int"]

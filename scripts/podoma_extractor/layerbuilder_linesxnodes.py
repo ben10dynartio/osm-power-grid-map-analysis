@@ -41,33 +41,19 @@ output_path.mkdir(exist_ok=True, parents=True)
 conn = connectpdm()
 
 query = f"""
-WITH lines AS (
-    SELECT fc.osmid osmid, fc.version version, fc.tags wtags, fc.userid wuserid, fc.ts_start wtimestamp
+WITH linesnodes AS (
+    SELECT fm.memberid osmid, nc.version, nc.geom ngeom, fc.osmid memberof, fm.pos pos, fc.tags wtags, fc.userid wuserid, nc.ts_start wtimestamp
     FROM pdm_features_lines_changes fc
-    JOIN pdm_features_lines_boundary fb ON fc.osmid=fb.osmid AND fc.version=fb.version
+    JOIN pdm_members_lines fm ON fm.osmid=fc.osmid AND fm.version=fc.version
+    JOIN pdm_features_lines_changes nc ON nc.osmid=fm.memberid AND ((greatest(fc.ts_start, CURRENT_TIMESTAMP) >= nc.ts_start AND greatest(fc.ts_start, CURRENT_TIMESTAMP) < nc.ts_end) OR (greatest(fc.ts_start, CURRENT_TIMESTAMP) >= nc.ts_start AND nc.ts_end IS NULL))
+    JOIN pdm_features_lines_boundary fb ON fb.osmid=fc.osmid AND fb.version=fc.version
     WHERE fb.boundary={countryosmcode}
     AND (({datebuild} >= fc.ts_start AND {datebuild} < fc.ts_end) OR ({datebuild} >= fc.ts_start AND fc.ts_end is null))
-), nodesid AS (
-    SELECT fm.memberid osmid, fm.osmid memberof, fm.pos pos, lines.wtags wtags, lines.wuserid wuserid, lines.wtimestamp wtimestamp
-    FROM pdm_members_lines fm
-    JOIN lines ON fm.osmid=lines.osmid AND fm.version=lines.version
-), nodes AS (
-    SELECT fc.osmid osmid, fc.geom geom, nid.memberof memberof, nid.pos pos, nid.wtags wtags, nid.wuserid wuserid, nid.wtimestamp wtimestamp, fc.ts_start ntimestamp
-    FROM pdm_features_lines_changes fc
-    JOIN nodesid nid ON fc.osmid=nid.osmid
-    WHERE (({datebuild} >= fc.ts_start AND {datebuild} < fc.ts_end) OR ({datebuild} >= fc.ts_start AND fc.ts_end is null))
-), supports AS (
-    SELECT fc.osmid osmid, fc.tags tags, fc.userid nuserid
-    FROM pdm_features_supports_changes fc
-    JOIN pdm_features_supports_boundary fb ON fc.osmid=fb.osmid AND fc.version=fb.version
-    WHERE fb.boundary={countryosmcode}
-    AND (({datebuild} >= fc.ts_start AND {datebuild} < fc.ts_end) OR ({datebuild} >= fc.ts_start AND fc.ts_end is null))
-), joined AS (
-    SELECT nodes.osmid osmid, nodes.geom geometry, supports.tags ntags, nodes.memberof memberof, nodes.pos pos, nodes.wtags wtags, nodes.wuserid wuserid, supports.nuserid nuserid, nodes.wtimestamp wtimestamp, nodes.ntimestamp ntimestamp
-    FROM nodes
-    LEFT JOIN supports ON nodes.osmid=supports.osmid
-)
-SELECT * FROM joined;
+ )
+ 
+SELECT ln.osmid osmid, ln.version, ln.ngeom geometry, fs.tags ntags, ln.memberof memberof, ln.pos pos, ln.wtags wtags, ln.wuserid wuserid, fs.userid nuserid, ln.wtimestamp wtimestamp, fs.ts_start ntimestamp
+    FROM linesnodes ln
+    LEFT JOIN pdm_features_supports_changes fs ON fs.osmid=ln.osmid AND fs.version=ln.version;
 """
 
 gdf = gpd.GeoDataFrame.from_postgis(query, conn, geom_col='geometry')
