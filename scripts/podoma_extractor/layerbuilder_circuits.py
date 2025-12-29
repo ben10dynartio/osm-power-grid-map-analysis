@@ -36,13 +36,13 @@ conn = connectpdm()
 
 query = f"""
 WITH circuits AS (
-    SELECT fc.osmid osmid, fc.version version, fc.tags wtags, fc.userid wuserid, fc.ts_start wtimestamp
+    SELECT fc.osmid osmid, fc.version version, fc.tags ctags, fc.userid cuserid, fc.ts_start ctimestamp
     FROM pdm_features_circuits_changes fc
     JOIN pdm_features_circuits_boundary fb ON fc.osmid=fb.osmid AND fc.version=fb.version
     WHERE fb.boundary={countryosmcode}
     AND (({datebuild} >= fc.ts_start AND {datebuild} < fc.ts_end) OR ({datebuild} >= fc.ts_start AND fc.ts_end is null))
 ), members AS (
-    SELECT fm.memberid member_osmid, fm.role member_role, fm.osmid osmid, circuits.wtags wtags, circuits.wuserid wuserid, circuits.wtimestamp wtimestamp
+    SELECT fm.memberid member_osmid, fm.role member_role, fm.osmid osmid, circuits.ctags tags, circuits.cuserid userid, circuits.ctimestamp timestamp
     FROM pdm_members_circuits fm
     JOIN circuits ON fm.osmid=circuits.osmid AND fm.version=circuits.version
 )
@@ -60,11 +60,9 @@ gdf["tags"] = gdf["tags"].map(convert_dict)
 for tag in OSM_POWER_TAGS:
     gdf[tag] = gdf["tags"].apply(lambda x: x.pop(tag, None))
 
-gdf.to_csv(output_folder / "osm_pdm_circuits_members.csv", index=False)
-
 # Export to a shapefile
 this_output_path = output_folder / FILENAME_CIRCUITS
-gdf.to_csv(this_output_path)
+gdf.to_csv(this_output_path, index=False)
 print("Shapefile created:", this_output_path, " | length =", len(gdf), "\n")
 
 
