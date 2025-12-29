@@ -12,7 +12,7 @@ import ast
 
 import pandas as pd
 
-FILENAME_CIRCUITS = "osm_pdm_power_circuits.gpkg"
+FILENAME_CIRCUITS = "osm_pdm_power_circuits.csv"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--country", type=str, help="Country OSM code", default="80500")
