@@ -23,7 +23,7 @@ parser.add_argument("-f", "--folder", type=str, help="Folder name", default="xx"
 # Initialisation
 # ---------------------------------------------
 args = parser.parse_args()
-datebuild = args.date
+datebuild = args.date if args.date == "CURRENT_TIMESTAMP" else f"'{args.date}'"
 countryosmcode = args.country
 
 output_folder = config.DATA_PATH / args.folder
