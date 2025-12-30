@@ -133,7 +133,7 @@ def main():
     for row in tempdf.to_dict(orient='records'):
         add_error(errors, {"name":"InconsistentGeometry",
                            "description":"Inconsistent Geometry (At least two point expected)",
-                           "details":row["geometry"], "osmid":row["osmid"], "level":3})
+                           "details":str(row["geometry"]), "osmid":row["osmid"], "level":3})
     gdf_line = gdf_line[gdf_line["check_consistency"]]
 
     # Identify self-looping lines
@@ -373,7 +373,7 @@ def main():
         del gdf_line["p1"]
 
     gdf_line.to_file(DATA_PATH / COUNTRY_CODE / "pre_graph_power_lines.gpkg")
-    errors_to_file(errors, COUNTRY_CODE, "errors_step2_prepare_for_graph.json")
+    errors_to_file(errors, COUNTRY_CODE, "errors_step1_prepare_for_graph.json")
 
 
 def simplify_line(row):
