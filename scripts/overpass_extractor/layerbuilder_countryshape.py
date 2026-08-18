@@ -25,7 +25,7 @@ def main(countrycode):
         # Request shape manually instead for this country
 
         try:
-            overpass_response = query_country_shape(countrycode, retry=1)
+            overpass_response = query_country_shape(countrycode)
             gdf = overpass_response_to_gdf(overpass_response, tags=["name", "name:en"])
             gdf.to_file(DATA_PATH / countrycode / "osm_brut_country_shape.gpkg")
         except Exception as e:
@@ -53,7 +53,7 @@ def query_country_shape(countrycode:str, querydate=None) -> str:
     query = f"""[out:json][timeout:1000]{strdate};
                 rel["ISO3166-1:alpha2"="{countrycode}"];
                 out geom;"""
-    return overpass_query(query)
+    return overpass_query(query, retry=1)
 
 
 def query_country_cities(countrycode:str, querydate=None) -> str:
@@ -64,7 +64,7 @@ def query_country_cities(countrycode:str, querydate=None) -> str:
                 area["ISO3166-1:alpha2"={countrycode}]->.searchArea;
                 node["capital"~"^(1|2|3|4|5|6)$"](area.searchArea);
                 out meta geom;"""
-    return overpass_query(query)
+    return overpass_query(query, retry=1)
 
 
 if __name__ == '__main__':
