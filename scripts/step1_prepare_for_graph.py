@@ -299,9 +299,9 @@ def main():
         gdf_line[f"nodetype{i}"] = gdf_line.apply(
             lambda r: "substation" if r[f"substation{i}"] is not None else r[f"nodetype{i}"], axis=1)
         gdf_line[f"p{i}"] = gdf_line.apply(
-            lambda r: dic_substation_geopoint.get(r[f"substation{i}"]) if r[f"substation{i}"] is not None else r[f"p{i}"], axis=1)
+            lambda r: dic_substation_geopoint.get(r[f"substation{i}"]) if (r[f"substation{i}"] is not None and not pd.isna(r[f"substation{i}"])) else r[f"p{i}"], axis=1)
         gdf_line[f"osmid{i}"] = gdf_line.apply(
-            lambda r: r[f"substation{i}"] if r[f"substation{i}"] is not None else r[f"osmid{i}"], axis=1)
+            lambda r: r[f"substation{i}"] if (r[f"substation{i}"] is not None and not pd.isna(r[f"substation{i}"])) else r[f"osmid{i}"], axis=1)
 
         ## Process international
         gdf_line[f"nodetype{i}"] = gdf_line.apply(
