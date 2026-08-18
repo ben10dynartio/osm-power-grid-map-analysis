@@ -80,7 +80,7 @@ def agg_group_to_lines(g):
     return first_row
 
 gdf_lines : gpd.GeoDataFrame = gdf.sort_values(["memberof", "pos"])
-gdf_lines = gdf_lines.groupby("memberof").apply(agg_group_to_lines).reset_index(drop=True)
+gdf_lines = gdf_lines.groupby("memberof", as_index=False).apply(agg_group_to_lines)
 gdf_lines = gdf_lines.set_crs(gdf.crs)
 gdf_lines["tags"] = gdf_lines["wtags"].map(convert_dict)
 for tag in OSM_POWER_TAGS:
@@ -105,7 +105,7 @@ def agg_group_to_points(g):
     return first_row
 
 gdf_nodes : gpd.GeoDataFrame = gdf.sort_values(["memberof", "pos"])
-gdf_nodes = gdf_nodes.groupby("osmid").apply(agg_group_to_points).reset_index(drop=True)
+gdf_nodes = gdf_nodes.groupby("osmid", as_index=False).apply(agg_group_to_points)
 gdf_nodes = gdf_nodes.set_crs(gdf.crs)
 gdf_nodes["id"] = gdf_nodes["osmid"].apply(lambda x: int(x[5:]))
 gdf_nodes["tags"] = gdf_nodes["ntags"].map(convert_dict)
