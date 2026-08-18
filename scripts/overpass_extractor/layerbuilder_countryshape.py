@@ -25,7 +25,7 @@ def main(countrycode):
         # Request shape manually instead for this country
 
         try:
-            overpass_response = query_country_shape(countrycode)
+            overpass_response = query_country_shape(countrycode, retry=1)
             gdf = overpass_response_to_gdf(overpass_response, tags=["name", "name:en"])
             gdf.to_file(DATA_PATH / countrycode / "osm_brut_country_shape.gpkg")
         except Exception as e:
