@@ -23,6 +23,18 @@ def main(countrycode):
     if countrycode != "PY":
         # There is a osm2geojson.json2geojson error for Paraguay ... it need to be investigated
         # Request shape manually instead for this country
+
+        try:
+            overpass_response = query_country_shape(countrycode)
+            gdf = overpass_response_to_gdf(overpass_response, tags=["name", "name:en"])
+            gdf.to_file(DATA_PATH / countrycode / "osm_brut_country_shape.gpkg")
+        except Exception as e:
+            print("Exception raised for querying country shape = ", e)
+            if Path(DATA_PATH / countrycode / "osm_brut_country_shape.gpkg").is_file():
+                print("Country shape file already exists. It will be used for computation.")
+            else:
+                print("NO Country shape file existing. Errors might be raised.")
+                
         overpass_response = query_country_shape(countrycode)
         gdf = overpass_response_to_gdf(overpass_response, tags=["name", "name:en"])
         gdf.to_file(DATA_PATH / countrycode / "osm_brut_country_shape.gpkg")
